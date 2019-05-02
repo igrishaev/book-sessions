@@ -542,3 +542,18 @@
   (s/keys :req-un [::db]))
 
 (s/valid? ::config config)
+
+"
+(expound/expound string? 1)
+nil
+-- Spec failed --------------------
+
+  1
+
+should satisfy
+
+  string?
+
+-------------------------
+Detected 1 error
+"

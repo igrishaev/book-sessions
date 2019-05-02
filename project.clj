@@ -9,8 +9,19 @@
 
   :dependencies [[org.clojure/clojure "1.10.0"]
 
-                 ;; for spec
-                 [org.clojure/java.jdbc "0.7.8"]]
+                 ;; for spec chapter
+                 [org.clojure/java.jdbc "0.7.8"]
+
+                 ;; for exceptions chapter
+                 [slingshot "0.12.2"]
+                 [clj-http "3.9.1"]
+                 [cheshire "5.8.1"]
+
+                 [org.clojure/tools.logging "0.4.1"]
+                 ;; [ch.qos.logback/logback-classic "1.2.3"]
+                 ;; [org.apache.logging.log4j/log4j-core "2.11.2"]
+
+                 ]
 
   :target-path "target/%s"
 
