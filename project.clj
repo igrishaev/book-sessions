@@ -18,8 +18,9 @@
                  [cheshire "5.8.1"]
 
                  [org.clojure/tools.logging "0.4.1"]
-                 ;; [ch.qos.logback/logback-classic "1.2.3"]
-                 ;; [org.apache.logging.log4j/log4j-core "2.11.2"]
+                 [ch.qos.logback/logback-classic "1.2.3"]
+
+                 [io.sentry/sentry-clj "0.7.2"]
 
                  ]
 

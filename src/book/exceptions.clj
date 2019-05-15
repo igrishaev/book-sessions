@@ -144,6 +144,100 @@ Value error, a: 1, b: null
 
 (require '[clj-http.client :as client])
 
+(try+
+ (client/get "http://example.com/test")
+ (catch [:status 500] e
+   (println "The service is unavailable"))
+ (catch [:type :client/unexceptional-status] e
+   (println "The response was not 200"))
+ (catch ... e
+   (println "There was a connection error")))
+
+
+(defn pcall
+  [f & args]
+  (try
+    [true (apply f args)]
+    (catch Exception e
+      [false e])))
+
+
+(let [[ok? result-error] (pcall inc 1)]
+  (if ok?
+    (println (str "The result is " result-error))
+    (println "Failure")))
+
+
+(defn pcall-js
+  [f & args]
+  (try
+    [nil (apply f args)]
+    (catch Exception e
+      [e nil])))
+
+
+(defn pcall-retry
+  [n f & args]
+  (loop [attempt n]
+    (let [[ok? res] (apply pcall f args)]
+      (cond
+        ok? res
+
+        (< attempt n)
+        (do
+          (Thread/sleep (* attempt 1000))
+          (recur (inc n)))
+
+        :else
+        (throw res)))))
+
+
+#_
+(defn pcall-retry
+  [n f & args]
+  (loop [attempt n]
+    (try
+      (apply pcall f args)
+      (catch Exception e
+        (recur (inc n))))))
+
+
+
+(defn error!
+  [message & [data e]]
+  (throw (ex-info message (or data {}) e)))
+
+
+(defn errorf!
+  [template & args]
+  (let [message (apply format template args)]
+    (throw (new Exception ^String message))))
+
+
+(defmacro with-safe
+  [& body]
+  `(try
+     ~@body
+     (catch Exception e#)))
+
+(with-safe (/ 0 0))
+nil
+
+
+(defmacro with-file
+  [f path]
+  `(let [~f (open ~path)]
+     (try
+       ~@body
+       (finally
+         (.close ~f)))))
+
+(with-file f "/path/to/file.txt"
+  (.write f "A")
+  (.write f "B")
+  (.write f "C"))
+
+
 (defn auth-user
   [user-id]
   (let [url "http://auth.company.com"
@@ -217,6 +311,81 @@ Divide by zero
                      {:method "POST"
                       :url "http://api.site.com"}))))
 
+(require 'cheshire.core)
+(cheshire.core/generate-string (:via (Throwable->map e)))
+
+
+(-> e
+    Throwable->map
+    :via
+    (cheshire.core/generate-string {:pretty true}))
+
+
+(Throwable->map e)
+
+(defn wrap-exception
+  [handler]
+  (fn [request]
+    (try
+      (handler request)
+      (catch Exception e
+        (try
+          (sentry/send DSN e)
+          (catch Exception e-sentry
+            (log/errorf e-sentry "Sentry error: %s" DSN)
+            (log/error e "HTTP Error"))
+          (finally
+            {:status 500
+             :body "Internal error, please try later"}))))))
+
+
+
+(defn account-handler
+  [request]
+  (if (check-this request)
+    (if (check-that request)
+      (if (check-quotas request)
+        {:status 200
+         :body (get-data-from-db)}
+        (quotas-reached "Request rate is limited"))
+      (not-found "No such an account"))
+    (bad-request "Wrong input data")))
+
+
+(require '[ring.util.http-response
+           :refer [not-found!
+                   bad-request!
+                   enhance-your-calm!]])
+
+
+
+(defn account-handler
+  [request]
+
+  (when-not (check-this request)
+    (bad-request! "Wrong input data"))
+
+  (when-not (check-that request)
+    (not-found! "No such an account"))
+
+  (when-not (check-quotas request)
+    (enhance-your-calm! "Request rate is limited"))
+
+  {:status 200
+   :body (get-data-from-db)})
+
+
+(require '[ring.middleware.http-response
+           :refer [wrap-http-response]])
+
+
+(def app
+  (-> app-naked
+      wrap-params
+      wrap-session
+      wrap-cookies
+      wrap-http-response))
+
 #_
 (println e)
 
@@ -280,26 +449,29 @@ Divide by zero
   (clojure.stacktrace/print-stack-trace e))
 
 "
+2019-05-03 17:36:04,001 INFO  book.exceptions - Hello Logback!
+"
+
+#_
+(log/error e "Error while processing the request")
+
+"
 clojure.lang.ExceptionInfo: Get user info error
 {:user-id 42}
 "
 
-(def ex-map
-  (Throwable->map e))
-
-
-"finally"
-
-"macroses"
-
-"without errors"
-
-"flow macroses"
-
-"monads?"
-
-
-(require '[slingshot.slingshot :refer [try+ throw+]])
+"
+2019-05-03 17:41:03,913 ERROR book.exceptions - Error while processing the request
+clojure.lang.ExceptionInfo: Get user info error
+	at java.lang.Thread.run(Thread.java:745)
+    ...
+Caused by: clojure.lang.ExceptionInfo: Auth error
+	at clojure.lang.Compiler$InvokeExpr.eval(Compiler.java:3701)
+	... 30 common frames omitted
+Caused by: clojure.lang.ExceptionInfo: HTTP error
+	at clojure.lang.Compiler$InvokeExpr.eval(Compiler.java:3701)
+	... 31 common frames omitted
+"
 
 
 (defn ex-chain
@@ -307,26 +479,349 @@ clojure.lang.ExceptionInfo: Get user info error
   (take-while some? (iterate ex-cause e)))
 
 
-(defn e->message
-  [e]
+(defn ex-print
+  [^Throwable e]
   (let [indent "  "]
-    (with-out-str
-      (doseq [e (ex-chain e)]
-        (println (-> e class .getCanonicalName))
+    (doseq [e (ex-chain e)]
+      (println (-> e class .getCanonicalName))
+      (print indent)
+      (println (ex-message e))
+      (when-let [data (ex-data e)]
         (print indent)
-        (println (ex-message e))
-        (when-let [data (ex-data e)]
-          (print indent)
-          (clojure.pprint/pprint data))))))
+        (clojure.pprint/pprint data)))))
+
+
+
+(defn log-error
+  [^Throwable e & [^String message]]
+  (log/error
+   (with-out-str
+     (println (or message "Error"))
+     (ex-print e))))
+
+"
+2019-05-03 19:00:05,590 ERROR book.exceptions - An error occurred during request
+clojure.lang.ExceptionInfo
+  Get user info error
+  ...
+"
+
+
+
+
+
+
+(def ex-map
+  (Throwable->map e))
+
+
+"finally"
+"macroses"
+"without errors"
+"flow macroses"
+"monads?"
+
+
+(require '[slingshot.slingshot :refer [try+ throw+]])
+
+
+#_
+(try+
+ (throw+ {:type ::user-error
+          :user 42
+          :action :update
+          :data {:name "Ivan"}})
+ (catch [:type ::user-error] e
+   (clojure.pprint/pprint e)))
+
+
+(defn special-user-case?
+  [data]
+  (when (map? data)
+    (let [{:keys [type user]} data]
+      (and (= type ::user-error)
+           (= user 1)))))
+
+
+(try+
+ (throw+ {:type ::user-error
+          :user 1
+          :action :delete})
+ (catch special-user-case? e
+   (println "Attempt to delete a system account")))
+
+
+(defn aws-special-case?
+  [e]
+  (and
+   (instance? AmazonS3Exception e)
+   (some?
+    (re-find
+     #"(?i)The Content-Md5 you specified did not match"
+     (ex-message e)))))
+
+
+
+#_
+(let [path "/var/lib/file.txt"]
+  (try
+    (slurp path)
+    (catch Exception e
+      (throw+ {:path path} e "Cannot open a file %s" path))))
+
+
+"
+clojure.lang.ExceptionInfo
+  Get user info error
+  {:user-id 42}
+clojure.lang.ExceptionInfo
+  Auth error
+  {:api-key "........."}
+clojure.lang.ExceptionInfo
+  HTTP error
+  {:method "POST", :url "http://api.site.com"}
+"
+
+
+
+
+
+
+(try
+  (-> {:context :map}
+      (validate-data)
+      (send-email)
+      (update-the-db)
+      (something-else))
+  (catch IOException e
+    (failure-branch-io))
+  (catch Exception e
+    (failure-branch-common)))
+
+
+(-> {:context :map}
+
+    (d/chain
+
+     (validate-data)
+     (send-email)
+     (update-the-db)
+     (something-else))
+
+    (d/catch IOException
+      (fn [e]
+        (failure-branch e))))
+
+
+
+
+
+
 
 
 (defn install-better-logging
   []
   (alter-var-root
-   (var log/log*)
+   (var clojure.tools.logging/log*)
    (fn [log*]
      (fn [logger level throwable message]
        (log* logger level nil
              (if throwable
                (str message \newline (e->message e))
                message))))))
+
+
+(log/errorf e "There was an error, user: %s" user-id)
+
+
+
+#_
+(try
+  (let [path "/var/lib/company.billing/3.552.534/clients/23532345677/billing/20190505.csv"]
+    (slurp path))
+  (catch Exception e
+    (ex-message e)))
+
+;; /var/lib/company.billing/3.552.534/clients/23532345677/billing/20190505.csv (No such file or directory)
+
+
+
+#_
+(try
+  (let [path "/var/lib/company.billing/3.552.534/clients/23532345677/billing/20190505.csv"]
+    (try
+      (slurp path)
+      (catch java.io.IOException e
+        (throw (ex-info "Cannot access your billing information"
+                        {:path path
+                         :user-id 42})))))
+  (catch Exception e
+    (ex-message e)))
+
+           ;; Cannot access your billing information
+
+
+(require '[sentry-clj.core :as sentry])
+
+
+
+;; (def _dsn "https://...............@sentry.io/........")
+;; (sentry/init! _dsn)
+;; (sentry/send-event {:throwable e})
+
+
+
+(defmacro with-result
+  [x handler]
+  `(~handler ~x))
+
+
+(defmacro with-catch
+  [x handler]
+  `(try
+     ~x
+     (catch Throwable e#
+       (~handler e#))))
+
+
+#_
+(-> (do-this {:init :data})
+
+    (with-result
+      (fn [result]
+        (process-result)))
+
+    (with-catch
+      (fn [e]
+        (recover e)))
+
+    (with-result
+      (fn [result]
+        (something-other result)))
+
+    (with-catch
+      (fn [e]
+        (report-exception e)
+        (error! "Failure" {:context :map} e))))
+
+
+
+(defn get-user [id]
+  (let [url (format "http://api.host.com/user/%s" id)]
+    (:body (client/get url {:as :json}))))
+
+
+
+(comment
+
+  (try
+    (get-user 42)
+    (catch Exception e
+      (log/error e "HTTP error")))
+
+  )
+
+
+#_
+(slurp "/var/lib/secret_service/ver.2.3005.beta/accounts/5634534563/billing/csv")
+
+
+(let [user-id 42
+      url (format "http://api.host.com/user/%s" user-id)
+      params {:throw-exceptions? false
+              :coerce :always
+              :as :json}]
+
+  (->
+
+   (client/get url params)
+
+   (with-result
+     (fn [response]
+       (let [{:keys [status body]} response]
+         (if (= status 200)
+           body
+           (throw (ex-info
+                   (format "Non-200 response: %s" status)
+                   response))))))
+
+   (with-catch
+     (fn [^Exception e]
+       (let [message (ex-message e)
+             {:keys [status body]} (ex-data e)]
+         (throw
+          (ex-info
+           (format "Registrar error: %s" message)
+           {:type ::registrar-error
+            :url url
+            :user-id user-id
+            :params params
+            :message message
+            :http-status status
+            :http-body (when (coll? body) body)})))))))
+
+
+
+
+
+
+
+(try
+  (do-stuff 1)
+  (catch Exception e
+    (throw
+     (ex-info "Didn't manage to do the stuff"
+              {:user 1
+               :action "create"
+               :more {:data {:code "STUFF"}}}
+              e))))
+
+
+(import '[java.io File FileWriter])
+
+(let [out (new FileWriter (new File "test.txt"))]
+  (try
+    (.write out "Hello")
+    (.write out " ")
+    (.write out "Clojure")
+    (finally
+      (.close out))))
+
+
+(defmacro with-file-writer
+  [[bind path] & body]
+  `(let [~bind (new FileWriter (new File ~path))]
+     (try
+       ~@body
+       (finally
+         (.close ~bind)))))
+
+
+(with-file-writer [out "test.txt"]
+  (.write out "Hello from macros"))
+
+
+(comment
+
+  1
+
+
+  (try
+    (/ 100 0)
+    (catch ArithmeticException e
+      (println "error")))
+
+  (let [a 100 b 0]
+    (when (zero? b)
+      (throw (new Exception "b is zero"))))
+
+
+  (defn with-exception
+    [handler]
+    (fn [request]
+      (try
+        (handler request)
+        (catch Throwable e
+          (log/error e "HTTP error")
+          {:status 500
+           :body "Internal error."})))))
