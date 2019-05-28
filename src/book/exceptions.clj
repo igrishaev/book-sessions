@@ -617,8 +617,6 @@ clojure.lang.ExceptionInfo
 
 
 
-
-
 (defn install-better-logging
   []
   (alter-var-root
