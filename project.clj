@@ -9,6 +9,11 @@
 
   :dependencies [[org.clojure/clojure "1.10.0"]
 
+                 ;; for web
+
+                 [ring/ring-core "1.7.1"]
+                 [ring/ring-jetty-adapter "1.7.1"]
+
                  ;; for spec chapter
                  [org.clojure/java.jdbc "0.7.8"]
 

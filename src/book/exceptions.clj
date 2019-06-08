@@ -613,22 +613,6 @@ clojure.lang.ExceptionInfo
         (failure-branch e))))
 
 
-
-
-
-
-(defn install-better-logging
-  []
-  (alter-var-root
-   (var clojure.tools.logging/log*)
-   (fn [log*]
-     (fn [logger level throwable message]
-       (log* logger level nil
-             (if throwable
-               (str message \newline (e->message e))
-               message))))))
-
-
 (log/errorf e "There was an error, user: %s" user-id)
 
 

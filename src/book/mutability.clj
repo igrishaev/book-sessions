@@ -117,6 +117,51 @@ Invalid reference state
 
 (require '[clojure.tools.logging :as log])
 
+
+#_
+(defn install-better-logging
+  []
+  (alter-var-root
+   (var clojure.tools.logging/log*)
+   (fn [log*]
+     (fn [logger level throwable message]
+       (log* logger level nil
+             (if throwable
+               (str message \newline (e->message e))
+               message))))))
+
+
+(defn install-better-logging
+  []
+  (alter-var-root
+   (var clojure.tools.logging/log*)
+   (fn [log-old]
+     (fn log-new [logger level throwable message]
+       (if throwable
+         (log-old logger level nil
+                  (str message \newline
+                       (with-out-str
+                         (ex-print throwable))))
+         (log-old logger level throwable message))))))
+
+
+#_
+(defn install-better-logging
+  []
+  (alter-var-root
+   (var clojure.tools.logging/log*)
+   (fn [log*]
+     (fn [logger level throwable message]
+
+       (let [message* (if throwable
+                        (str message \newline
+                             (with-out-str
+                               (ex-print throwable)))
+                        message)]
+
+         (log* logger level nil message*))))))
+
+
 (def STORE_LIMIT (* 1024 1024 1024 25)) ;; 25 Gb
 
 (defn store-watcher
@@ -334,3 +379,228 @@ Invalid reference state
        (conj! result* (* n 2)))
      (persistent! result*))
    nil))
+
+(def size (atom 0))
+
+
+#_
+(def server (jetty/server {:port 8080}))
+
+(require '[ring.adapter.jetty :refer [run-jetty]])
+
+(defn app
+  [request]
+  {:status 200
+   :body "hello"})
+
+
+(def ^:dynamic *server* nil)
+
+
+(defn start!
+  []
+  (alter-var-root
+   (var *server*)
+   (fn [server]
+     (if-not server
+       (run-jetty app {:port 8080 :join? true})
+       server))))
+
+
+(defn stop!
+  []
+  (alter-var-root
+   (var *server*)
+   (fn [server]
+     (when server
+       (.stop server))
+     nil)))
+
+
+#_
+(def alter-server! (partial alter-var-root (var *server*)))
+
+#_
+(defn start!
+  []
+  (alter-server!
+   (fn [server]
+     (if-not server
+       (jetty/run-jetty app {:port 8080})
+       server))))
+
+#_
+(defn stop!
+  []
+  (alter-server!
+   (fn [server]
+     (when server
+       (.stop server))
+     nil)))
+
+(require '[clojure.java.jdbc :as jdbc])
+
+
+(jdbc/query *db* "select 1 as result")
+
+(defn get-user-by-id
+  [user-id]
+  (jdbc/get-by-id *db* :users user-id))
+
+
+(require 'clojure.pprint)
+
+
+(println [1 2 3 4 5 {:foo 42 :bar [1 2 3 4 5 {:foo 42 :bar [1 2 3 4 5 {:foo 42 :bar nil}]}]}])
+
+"
+[1 2 3 4 5 {:foo 42, :bar [1 2 3 4 5 {:foo 42, :bar [1 2 3 4 5 {:foo 42, :bar nil}]}]}]
+"
+
+(alter-var-root
+ (var println)
+ (fn [_] clojure.pprint/pprint))
+
+"
+[1
+ 2
+ 3
+ 4
+ 5
+ {:foo 42, :bar [1 2 3 4 5 {:foo 42, :bar [1 2 3 4 5 {#, #}]}]}]
+"
+
+"
+(println [{:foo 42 :bar [1 2 3 4 5 {:foo 42 :bar [1 2 {:foo ... ;; more
+"
+
+
+
+{:profiles
+ :dev  {:source-paths ["env/dev"]}
+ :test {:source-paths ["env/test"]}}
+
+
+(require '[clojure.java.io :as io])
+
+(def *o* *out*)
+(def f (io/writer "aaa.txt"))
+(set! *out* f)
+(println {:some {:data 1}})
+
+
+{:profiles
+ :dev {:global-vars {*warn-on-reflection* true
+                     *assert* true}}
+ :uberjar {:global-vars {*warn-on-reflection* false
+                         *assert* false}}}
+
+(def ^:dynamic *data* nil)
+
+(set! *data* {:user 1})
+
+
+(binding [*print-level* 8
+          *print-length* 4]
+  (println {:foo {:bar {:baz (repeat 1)}}}))
+
+
+(with-open [out (io/writer "dump.edn")]
+  (binding [*out* out]
+    (clojure.pprint/pprint {:test 42})))
+
+
+(defn dump-data
+  [path data]
+  (with-open [out (io/writer path)]
+    (binding [*out* out
+              *print-level* 32
+              *print-length* 256]
+      (clojure.pprint/pprint data))))
+
+
+#_
+(-> "sample.edn" slurp read-string)
+
+
+(def tr-map
+  {:en {:ui/add-to-cart "Add to Cart"}
+   :ru {:ui/add-to-cart "Добавить в корзину"}})
+
+#_
+(defn tr
+  [locale tag]
+  (get-in tr-map [locale tag]
+          (format "<%s%s>" locale tag)))
+
+
+(def ^:dynamic *locale*)
+
+(defmacro with-locale
+  [locale & body]
+  `(binding [*locale* ~locale]
+     ~@body))
+
+(defn tr
+  [tag]
+  (get-in tr-map [*locale* tag]))
+
+(with-locale :en
+  (tr :ui/add-to-cart))
+;; "Add to Cart"
+
+(with-locale :ru
+  (tr :ui/add-to-cart))
+;; "Добавить в корзину"
+
+(defn wrap-locale
+  [handler]
+  (fn [request]
+    (let [locale (some-> request :params :lang (or :en))]
+      (with-locale locale
+        (handler request)))))
+
+(require '[selmer.filters :refer [add-filter!]])
+
+(add-filter! :tr
+ (fn [line]
+   (-> line keyword tr)))
+
+
+(with-local-vars [a 1 b 2]
+  (var-set a 2)
+  (var-set b 3)
+  (* @a @b)
+  #_
+  (* (var-get a)
+     (var-get b)))
+
+
+(with-local-vars [a 0]
+  a)
+;; #<Var: --unnamed-->
+
+(defn calc-billing [data]
+  (with-local-vars
+    [a 0 b 0 c 0]
+
+    ;; find a
+    (when-let [usage (->some data :usage last)]
+      (when-let [days (->some data :days first)]
+        (var-set a (* usage days))))
+
+    ;; find b
+    (when-let [limits ...]
+      (when-let [vms ...]
+        (var-set b (* limits vms))))
+
+    ;; find c
+    ;; ...
+
+    ;; result
+    (+ (* @a @b) @c)))
+
+(with-local-vars [user {:name "Ivan"}]
+  ;; (var-set user assoc :age 33) ;; won't work
+  (var-set user (assoc (var-get user) :age 33))
+  @user)
