@@ -604,3 +604,154 @@ Invalid reference state
   ;; (var-set user assoc :age 33) ;; won't work
   (var-set user (assoc (var-get user) :age 33))
   @user)
+
+
+(with-redefs
+  [println (fn [_] (print "fake print"))]
+  @(future (println 42)))
+
+#_
+(defn search-restrs
+  []
+  (let [url "https://api.google.com/geosearch"
+        params {:as :json
+                :query-params
+                {:key "........."
+                 :type :restaurant
+                 :radius "100m"}}]
+    (:body (client/get url params))))
+
+#_
+(defn nearme
+  [request]
+  (let [response (search-restrs)
+        html (selmer/render
+              "nearme.html" {:response response})]
+    {:status 200
+     :body html}))
+
+#_
+(deftest test-google-resp-ok
+  (with-redefs
+    [search-restrs (constantly
+                    {:items [{:title ""}
+                             {:title ""}]})]
+
+    (let [url "http://127.0.0.1:8080/nearme"
+          {:keys [status body]} (client/get url)]
+
+      (is (= 200 status))
+      (is (re-matches #"2 restaurants found" body)))))
+
+#_
+(deftest test-google-resp-ok
+  (with-redefs
+    [search-restrs
+     (fn [_ &]
+       (throw (ex-info "403 Access denied"
+                       {:status 403
+                        :body "..."})))]
+
+    (let [;; url "http://127.0.0.1:8080/nearme"
+          {:keys [status body]} (app {:request-method :get
+                                      :uri "/nearme"})]
+
+      (is (= 200 status))
+      (is (re-matches #"2 restaurants found" body)))))
+
+
+(defn location-handler
+  [request]
+  (let [{:keys [params]} request
+        point (select-keys params [:lat :lon])
+        place (geo/place-info point)]
+    (db/create-location (merge {} place point))
+    {:status 200 :body "OK"}))
+
+(defn location-handler
+  [request]
+  (let [{:keys [params]} request
+        point (select-keys params [:lat :lon])
+        row-id (db/create-point point)]
+    (future
+      (let [place (geo/place-info point)]
+        (db/update-place row-id place)))
+    {:status 200 :body "OK"}))
+
+(require 'geo)
+
+(defmacro with-place-info
+  [result & body]
+  `(with-redefs [geo/place-info
+                 (fn [~'point] ~result)]
+     ~@body))
+
+
+(with-redefs [geo/place-info
+              (fn [point]
+                {:some :result})]
+  ;; the body of the test
+  )
+
+(with-place-info
+  (throw (new Exception "AAAA"))
+  1
+
+  )
+
+
+(deftest test-place-ok
+  (with-place-info
+    {:title "test_title"
+     :country "test_country"}
+
+    (let [request {:params {:lat 11.111 :lon 22.222}}
+          {:keys [status body]} (location-handler request)]
+
+      (is (= 200 status))
+      (is (= "OK" body))
+
+      (Thread/sleep 100)
+
+      (let [location (db/get-last-location)
+            {:keys [title country]} location]
+
+        (is (= title "test_title"))
+        (is (= country "test_country"))))))
+
+(def ex-quota
+  (ex-info "429 Quota reached"
+           {:status 428
+            :headers {}
+            :body {:error_code :QUOTA_REACHED
+                   :error_message "..."}}))
+
+(deftest test-place-quota-reached
+  (with-place-info
+    (throw ex-quota)
+
+    (let [request {:params {:lat 11.111 :lon 22.222}}
+          {:keys [status body]} (location-handler request)]
+
+      ;; ...
+      )))
+
+(deftest test-place-conn-err
+  (with-place-info
+    (throw (new java.net.ConnectException "test_timeout"))
+    ;; ...
+    ))
+
+
+(with-redefs-fn
+  {#'geo/place-info (fn [point] {:title "test"})}
+  (fn []
+    (geo/place-info {:lat 1 :lon 2})))
+
+(with-redefs-fn
+  {#'geo/place-info (fn [point] {:title "test"})}
+
+  #(let [point {:lat 1 :lon 2}
+         place (geo/place-info point)]
+     ;; ...
+     ))
