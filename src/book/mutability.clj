@@ -394,13 +394,13 @@ Invalid reference state
    :body "hello"})
 
 
-(def ^:dynamic *server* nil)
+(def server nil)
 
 
 (defn start!
   []
   (alter-var-root
-   (var *server*)
+   (var server)
    (fn [server]
      (if-not server
        (run-jetty app {:port 8080 :join? true})
@@ -410,7 +410,7 @@ Invalid reference state
 (defn stop!
   []
   (alter-var-root
-   (var *server*)
+   (var server)
    (fn [server]
      (when server
        (.stop server))
@@ -418,7 +418,7 @@ Invalid reference state
 
 
 #_
-(def alter-server! (partial alter-var-root (var *server*)))
+(def alter-server! (partial alter-var-root (var server)))
 
 #_
 (defn start!
@@ -755,3 +755,7 @@ Invalid reference state
          place (geo/place-info point)]
      ;; ...
      ))
+
+(def ^:dynaimc *data* nil)
+
+(set! *data* {:user 1})
