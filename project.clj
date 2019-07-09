@@ -27,6 +27,9 @@
 
                  [io.sentry/sentry-clj "0.7.2"]
 
+                 ;; for spec and config
+                 [expound "0.7.2"]
+
                  ]
 
   :target-path "target/%s"

@@ -1,0 +1,13 @@
+{
+    "server_port": $HTTP_PORT,
+    "db": {
+        "dbtype":   "mysql",
+        "dbname":   "$DB_NAME",
+        "user":     "$DB_USER",
+        "password": "$DB_PASS"
+    },
+    "event": [
+        "$EVENT_START",
+        "$EVENT_END"
+    ]
+}
