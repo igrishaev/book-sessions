@@ -1,0 +1,4 @@
+{
+    "server_port": "A port which the web-server is bound to.",
+    "server_port": 8080
+}

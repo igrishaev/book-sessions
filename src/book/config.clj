@@ -285,16 +285,92 @@ COMMAND_MODE=unix2003
 {:db {:user "ivan", :pass "****", :name "book"},
  :http {:port "8080", :host "api.random.com"}}
 
-
 (s/def ::->env
   (s/conformer
    (fn [varname]
      (or (System/getenv varname)
          ::s/invalid))))
 
-
-(s/def ::ne-string
-  (s/and string? not-empty))
-
 (s/def ::db-password
-  (s/and ::->env ::ne-string))
+  (s/and ::->env
+         string?
+         (s/conformer str/trim)
+         not-empty))
+
+
+;; tags
+
+(defmulti !tag
+  (fn [args]
+    (when (vector? args)
+      (first args))))
+
+(defmethod !tag "!env"
+  [[_ varname]]
+  (System/getenv varname))
+
+(defn tag-env
+  [varname]
+  (cond
+    (symbol? varname)
+    (System/getenv (name varname))
+    (string? varname)
+    (System/getenv varname)
+    :else
+    (throw (new Exception "wrong var type"))))
+
+(require '[clojure.edn :as edn])
+
+(edn/read-string
+ {:readers {'env tag-env}}
+ "{:db-password #env DB_PASS}")
+
+
+(def read-config
+  (partial edn/read-string
+           {:readers {'env tag-env}}))
+
+
+(require '[yummy.config :as yummy])
+
+#_
+(yummy/load-config {:path "config.yaml"})
+
+{:server_port 8080
+ :db {:dbtype "mysql"
+      :dbname "book"
+      :user "ivan"
+      :password "*(&fd}A53z#$!"}}
+
+
+#_
+(-> "/path/to/config.edn"
+    slurp
+    read-config)
+
+
+{:phrases
+ ["Welcome aboard!"
+  "See you soon!"
+  {:Warning "wrong email address."}]}
+
+{:task-state #{:pending :in-progress :done}
+ :account-ids [1001 1002 1003]
+ :server {:host "127.0.0.1" :port 8080}
+ :date-range [#inst "2019-07-01" #inst "2019-07-31"]
+ :cassandra-id #uuid "26577362-902e-49e3-83fb-9106be7f60e1"}
+
+#_
+(-> (get-huge-dataset)
+    pr-str
+    (as-> dump
+        (spit "test.edn" dump)))
+
+
+{:users [{:id 1
+          :name "Ivan"}
+         #_
+         {:id 2
+          :name "Juan"}
+         {:id 3
+          :name "Ioann"}]}

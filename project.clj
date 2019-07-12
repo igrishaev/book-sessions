@@ -30,7 +30,9 @@
                  ;; for spec and config
                  [expound "0.7.2"]
 
-                 ]
+                 [aero "1.1.3"]
+                 [exoscale/yummy "0.2.6"]
+                 [cprop "0.1.14"]]
 
   :target-path "target/%s"
 

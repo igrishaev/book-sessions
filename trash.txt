@@ -1,0 +1,36 @@
+
+
+phrases:
+  - Welcome aboard!
+  - See you soon!
+  - Warning: wrong email address.
+
+
+{
+	"phrases": [
+		"Welcome aboard!",
+		"See you soon!",
+		{
+			"Warning": "wrong email address."
+		}
+	]
+}
+
+
+{:phrases
+ ["Welcome aboard!" "See you soon!" {:Warning "wrong email address."}]}
+
+
+                                 {
+server_port: 8080                     "server_port": 8080,
+db:                                   "db": {
+  dbtype:   mysql                         "dbtype":   "mysql",
+  dbname:   book                          "dbname":   "book",
+  user:     user                          "user":     "ivan",
+  password: '****'                        "password": "****"
+event:                                },
+  - 2019-07-05T12:00:00               "event": [
+  - 2019-07-12T23:59:59                   "2019-07-05T12:00:00",
+                                          "2019-07-12T23:59:59"
+                                      ]
+                                  }
