@@ -374,3 +374,80 @@ COMMAND_MODE=unix2003
           :name "Juan"}
          {:id 3
           :name "Ioann"}]}
+
+;;
+;; cprop
+;;
+
+(require '[cprop.core :refer [load-config]])
+
+(require '[cprop.source :refer [from-env
+                                from-props-file
+                                from-file
+                                from-resource]])
+
+
+#_
+(load-config)
+
+#_
+(from-props-file "config.properties")
+
+{:db {:type "mysql"
+      :host "127.0.0.1"
+      :pool {:connections 8}}}
+
+#_
+(load-config
+ :resource "private/config.edn"
+ :file "/path/custom/config.edn")
+
+#_
+(load-config
+ :resource "path/within/classpath/to.edn"
+ :file "/path/to/some.edn"
+ :merge [{:datomic {:url "foo.bar"}}
+         (from-file "/path/to/another.edn")
+         (from-resource "path/within/classpath/to-another.edn")
+         (from-props-file "/path/to/some.properties")
+         (from-system-props)
+         (from-env)])
+
+;;
+;; aero
+;;
+
+;; (require '[aero.core :refer (read-config)])
+;; (read-config "aero.test.edn")
+;; (read-config "aero.test.edn" {:profile :test})
+
+
+;;
+;; yummy
+;;
+
+(require '[yummy.config :refer [load-config]])
+
+;; (load-config {:path "config.yaml"})
+
+;; (load-config {:program-name :book})
+
+(load-config {:program-name :book
+              :spec ::config})
+
+
+#_
+(load-config
+ {:program-name :book
+  :spec ::config
+  :die-fn (fn [e msg]
+            (binding [*out* *err*]
+              (println msg)
+              (println (ex-message e))))})
+
+(load-config
+ {:program-name :book
+  :spec ::config
+  :die-fn (fn [e msg]
+            (log/errorf e "Config error")
+            (System/exit 1))})

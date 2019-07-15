@@ -1,16 +1,43 @@
-server_port: 8080
+# server_port: 8080
+# db:
+#   dbtype:   mysql
+#   dbname:   book
+#   user:     user
+#   password: '****'
+# event:
+#   - 2019-07-05T12:00:00
+#   - 2019-07-12T23:59:59
+
+# numbers: [1, 2, 3]
+
+# numbers:
+#   - 1
+#   - 2
+#   - 3
+
+
+server_port: aaaa
+
 db:
-  dbtype:   mysql
-  dbname:   book
-  user:     user
-  password: '****'
-event:
-  - 2019-07-05T12:00:00
-  - 2019-07-12T23:59:59
+  password: !envvar DB_PASS
 
-numbers: [1, 2, 3]
+# states:
+#   - !keyword task/pending
+#   - !keyword task/in-progress
+#   - !keyword task/done
 
-numbers:
-  - 1
-  - 2
-  - 3
+# system-user: !uuid cb7aa305-997c-4d53-a61a-38e0d8628dbb
+
+# tls:
+#   auth: !slurp "certs/ca.pem"
+#   cert: !slurp "certs/cert.pem"
+#   pkey: !slurp "certs/key.pk8"
+
+description: |
+  To resolve the error, please do the following:
+
+  - Press Control + Alt + Delete;
+  - Turn off your computer;
+  - Walk for a while.
+
+  Then try again.

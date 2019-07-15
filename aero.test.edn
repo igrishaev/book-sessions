@@ -1,0 +1,32 @@
+
+
+#_
+{:db {:passwod #env DB_PASS}}
+
+#_
+{:db {:port #or [#env DB_PORT 5432]}}
+
+#_
+{:db {:name #profile {:default "book"
+                      :dev "book_DEV"
+                      :test "book_TEST"}}}
+
+
+#_
+{:queue #include "message-queue.edn"}
+
+
+{:db {:user #env DB_USER}
+ :worker {:user #ref [:db :user]}}
+
+
+#_
+{:db-uri #envf ["jdbc:postgresql://%s/%s?user=%s"
+                DB_HOST DB_NAME DB_USER]}
+
+
+#_
+{:webserver
+ {:port #profile {:default 8000
+                  :dev 8001
+                  :test 8002}}}
