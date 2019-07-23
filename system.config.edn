@@ -1,0 +1,22 @@
+
+{:jetty {:join? false
+         :port  8088}
+
+ :pool {:auto-commit        true
+        :read-only          false
+        :connection-timeout 30000
+        :validation-timeout 5000
+        :idle-timeout       600000
+        :max-lifetime       1800000
+        :minimum-idle       10
+        :maximum-pool-size  10
+        :pool-name          "book-pool"
+        :adapter            "postgresql"
+        :username           "book"
+        :password           "book"
+        :database-name      "book"
+        :server-name        "127.0.0.1"
+        :port-number        5432
+        :register-mbeans    false}
+
+ :worker {:sleep 1000}}

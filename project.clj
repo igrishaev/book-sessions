@@ -27,12 +27,19 @@
 
                  [io.sentry/sentry-clj "0.7.2"]
 
-                 ;; for spec and config
+                 ;; config
                  [expound "0.7.2"]
-
                  [aero "1.1.3"]
                  [exoscale/yummy "0.2.6"]
-                 [cprop "0.1.14"]]
+                 [cprop "0.1.14"]
+
+                 ;; systems
+                 [org.postgresql/postgresql "42.1.3"]
+                 [hikari-cp "2.8.0"]
+
+                 [mount "0.1.16"]
+                 [com.stuartsierra/component "0.4.0"]
+                 [integrant "0.7.0"]]
 
   :target-path "target/%s"
 
