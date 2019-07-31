@@ -36,3 +36,8 @@ langohr.core/*default-config*
     (println "[main] Disconnecting...")
     (rmq/close ch)
     (rmq/close conn)))
+
+
+;; mount.core.DerefableState
+;; mount.core.NotStartedState
+;; #object[org.eclipse.jetty.server.Server 0xcafbe9 "Server@cafbe9{STARTED}[9.4.12.v20180830]"]

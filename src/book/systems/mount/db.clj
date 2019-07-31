@@ -1,22 +1,47 @@
 (ns book.systems.mount.db
   (:require
    [mount.core :as mount :refer [defstate]]
-   [hikari-cp.core
-    :refer [make-datasource close-datasource]]
+   [hikari-cp.core :as cp]
    [book.systems.mount.config :refer [config]]))
 
 
+#_
+(ns book.systems.mount.db
+  (:require
+   [book.systems.mount.config :refer [config]]))
+
+
+#_
 (defstate ^{:on-reload :noop}
   db
 
   :start
   (let [{pool-opt :pool} config
-        store (make-datasource pool-opt)]
+        store (cp/make-datasource pool-opt)]
     {:datasource store})
 
   :stop
-  (-> db :datasource close-datasource))
+  (-> db :datasource cp/close-datasource))
 
+
+(defstate db
+  :start
+  (let [{pool-opt :pool} config
+        store (cp/make-datasource pool-opt)]
+    {:datasource store})
+  :stop
+  (-> db :datasource cp/close-datasource))
+
+
+;; (jdbc/get-by-id db :users 42)
+;; (jdbc/insert! db :users {:name "Ivan" :email "ivan@test.com"})
+
+
+
+;; (mount/start)
+;; (require '[clojure.java.jdbc :as jdbc])
+;; (jdbc/query db "select 42 as answer")
+;; ({:answer 42})
 
 #_
 (def datasource-options

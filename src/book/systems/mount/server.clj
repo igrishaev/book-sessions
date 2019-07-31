@@ -1,19 +1,10 @@
 (ns book.systems.mount.server
   (:require
    [mount.core :as mount :refer [defstate]]
-   [ring.adapter.jetty :refer [run-jetty]])
-  (:import
-   org.eclipse.jetty.server.Server))
+   [ring.adapter.jetty :refer [run-jetty]]))
 
-
-(defn app
-  [request]
-  {:status 200
-   :headers {"content-type" "text/plain"}
-   :body "Hello!"})
-
+(def app (constantly {:status 200 :body "Hello"}))
 
 (defstate server
-  :start (run-jetty app {:join? false
-                         :port 8080})
-  :stop (.stop ^Server server))
+  :start (run-jetty app {:join? false :port 8080})
+  :stop (.stop server))

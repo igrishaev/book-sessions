@@ -6,7 +6,7 @@ services:
     container_name: book_postgres
     volumes:
       - ./initdb.d:/docker-entrypoint-initdb.d
-      - /tmp/docker/book:/var/lib/postgresql/data
+      # - /tmp/docker/book:/var/lib/postgresql/data
     ports:
       - 5432:5432
     environment:

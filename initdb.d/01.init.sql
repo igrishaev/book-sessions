@@ -5,7 +5,7 @@ create table requests (
     id              serial primary key,
     created_at      timestamp with time zone not null default now(),
     path            text not null,
-    ip              inet not null,
+    ip              text not null,
     is_processed    boolean not null default false,
     zip             text,
     country         text,

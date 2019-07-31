@@ -1,9 +1,8 @@
 (ns book.systems.mount.core
   (:require
    [mount.core :as mount]
-   [book.systems.mount.server-better]
-   [book.systems.mount.worker]))
+   book.systems.mount.server
+   book.systems.mount.worker))
 
-
-(defn -main [& args]
+(defn start []
   (mount/start))

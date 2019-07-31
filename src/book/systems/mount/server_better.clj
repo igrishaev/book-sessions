@@ -18,8 +18,17 @@
    :body "Hello!"})
 
 
+#_
 (defstate
-  ^{:on-reload :noop}
+  ^{:on-reload :noop} ;; !!!
+  server
+  :start
+  (let [{jetty-opt :jetty} config]
+    (run-jetty app jetty-opt))
+  :stop (.stop ^Server server))
+
+
+(defstate
   server
   :start
   (let [{jetty-opt :jetty} config]

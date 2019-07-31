@@ -16,7 +16,22 @@
         :password           "book"
         :database-name      "book"
         :server-name        "127.0.0.1"
-        :port-number        5432
-        :register-mbeans    false}
+        :port-number        5432}
 
  :worker {:sleep 1000}}
+
+
+#_
+{:worker {:sleep 1000}}
+
+
+#_
+{:pool {:minimum-idle       10
+        :maximum-pool-size  10
+        :pool-name          "book-pool"
+        :adapter            "postgresql"
+        :username           "book"
+        :password           "book"
+        :database-name      "book"
+        :server-name        "127.0.0.1"
+        :port-number        5432}}
