@@ -22,7 +22,7 @@
 
 (defn task-fn
   [db]
-  (db/with-trx [tx db]
+  (db/with-db-transaction [tx db]
     (let [requests (db/query tx requests-query)]
       (doseq [request requests]
         (let [{:keys [id ip]} request

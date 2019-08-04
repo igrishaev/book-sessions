@@ -7,10 +7,6 @@
 
 (defprotocol IDB
 
-  (get-spec [this])
-
-  (set-spec [this spec])
-
   (query [this sql-params])
 
   (update! [this table set-map where-clause]))
@@ -18,48 +14,36 @@
 
 (defrecord DB
     [options
-     pool
-     spec]
+     db-spec]
 
   component/Lifecycle
 
   (start [this]
-    (let [pool (cp/make-datasource options)]
-      (assoc this
-             :pool pool
-             :spec {:datasource pool})))
+    (let [pool (cp/make-datasource options)
+          spec {:datasource pool}]
+      (assoc this :db-spec spec)))
 
   (stop [this]
-    (cp/close-datasource pool)
-    (assoc this
-           :pool nil
-           :spec nil))
+    (-> db-spec :datasource cp/close-datasource)
+    (assoc this :db-spec nil))
 
   IDB
 
-  (get-spec [this]
-    spec)
-
-  (set-spec [this spec]
-    (assoc this :spec spec))
-
   (query [this sql-params]
-    (jdbc/query spec sql-params))
+    (jdbc/query db-spec sql-params))
 
   (update! [this table set-map where-clause]
-    (jdbc/update! spec
-                  table set-map where-clause)))
+    (jdbc/update! db-spec table set-map where-clause)))
 
 
 (defn make-db [pool-options]
   (map->DB {:options pool-options}))
 
 
-(defmacro with-trx
-  [binding & body]
-  (let [[comp-trx comp-db & trx-opt] binding]
-    `(let [db-spec# (get-spec ~comp-db)]
-       (jdbc/with-db-transaction
-         [t-conn# db-spec# ~@trx-opt]
-         (let [~comp-trx (set-spec ~comp-db t-conn#)]
-           ~@body)))))
+(defmacro with-db-transaction
+  [[comp-trx comp-db & trx-opt] & body]
+  `(let [{db-spec# :db-spec} ~comp-db]
+     (jdbc/with-db-transaction
+       [t-conn# db-spec# ~@trx-opt]
+       (let [~comp-trx (assoc ~comp-db :db-spec t-conn#)]
+         ~@body))))

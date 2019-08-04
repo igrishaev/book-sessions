@@ -55,5 +55,8 @@
 
 (def s0 (make-system _c))
 
-;; (def s1 (component/start s0))
-;; (def s2 (component/stop s1))
+#_
+(def s1 (component/start s0))
+
+#_
+(def s2 (component/stop s1))
