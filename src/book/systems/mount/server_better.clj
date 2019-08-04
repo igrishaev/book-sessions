@@ -28,9 +28,21 @@
   :stop (.stop ^Server server))
 
 
-(defstate
-  server
-  :start
-  (let [{jetty-opt :jetty} config]
-    (run-jetty app jetty-opt))
+(defstate server
+  :start (let [{jetty-opt :jetty} config]
+           (run-jetty app jetty-opt))
   :stop (.stop ^Server server))
+
+
+(def server)
+
+(fn start []
+  (alter-var-root #'server
+   (fn [_]
+     (let [{jetty-opt :jetty} config]
+       (run-jetty app jetty-opt)))))
+
+(fn stop []
+  (alter-var-root #'server
+   (fn [_]
+     (.stop ^Server server))))
