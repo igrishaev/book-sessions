@@ -9,6 +9,7 @@ services:
       # - /tmp/docker/book:/var/lib/postgresql/data
     ports:
       - 5432:5432
+    command: postgres -E
     environment:
       POSTGRES_DB: book
       POSTGRES_USER: book
