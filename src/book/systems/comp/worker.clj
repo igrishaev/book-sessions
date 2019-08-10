@@ -20,35 +20,9 @@
    LIMIT 1 FOR UPDATE;")
 
 
-(defn task-fn
-  [db]
-  (db/with-db-transaction [tx db]
-    (let [requests (db/query tx requests-query)]
-      (doseq [request requests]
-        (let [{:keys [id ip]} request
-              info (get-ip-info ip)
-              fields {:is_processed true
-                      :zip (:postal_code info)
-                      :country (:country_name info)
-                      :city (:city info)
-                      :lat (:lat info)
-                      :lon (:lng info)}]
-          (db/update! tx :requests
-                      fields
-                      ["id = ?" id]))))))
-
-
-(defn make-task
-  [db flag options]
-  (let [{:keys [sleep]} options]
-    (future
-      (while @flag
-        (try
-          (task-fn db)
-          (catch Throwable e
-            (log/error e))
-          (finally
-            (Thread/sleep sleep)))))))
+(defprotocol IWorker
+  (make-task [this])
+  (task-fn [this]))
 
 
 (defrecord Worker
@@ -61,10 +35,9 @@
 
     (start [this]
       (let [flag (atom true)
-            task (make-task db flag options)]
-        (assoc this
-               :flag flag
-               :task task)))
+            this (assoc this :flag flag)
+            task (make-task this)]
+        (assoc this :task task)))
 
     (stop [this]
       (reset! flag false)
@@ -73,7 +46,36 @@
         (Thread/sleep 300))
       (assoc this
              :flag nil
-             :task nil)))
+             :task nil))
+
+    IWorker
+
+    (make-task [this]
+      (let [{:keys [sleep]} options]
+        (future
+          (while @flag
+            (try
+              (task-fn this)
+              (catch Throwable e
+                (log/error e))
+              (finally
+                (Thread/sleep sleep)))))))
+
+    (task-fn [this]
+      (db/with-db-transaction [tx db]
+        (let [requests (db/query tx requests-query)]
+          (doseq [request requests]
+            (let [{:keys [id ip]} request
+                  info (get-ip-info ip)
+                  fields {:is_processed true
+                          :zip (:postal_code info)
+                          :country (:country_name info)
+                          :city (:city info)
+                          :lat (:lat info)
+                          :lon (:lng info)}]
+              (db/update! tx :requests
+                          fields
+                          ["id = ?" id])))))))
 
 
 (defn make-worker

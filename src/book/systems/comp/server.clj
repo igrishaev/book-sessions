@@ -62,7 +62,7 @@
       (assoc this :server nil)))
 
 
-
+#_
 (defrecord BadServer
   [options server]
   component/Lifecycle
@@ -73,8 +73,8 @@
     nil))
 
 
-(def bs-created (map->BadServer {:options {:port 8080 :join? false}}))
-(def bs-started (component/start bs-created))
+;; (def bs-created (map->BadServer {:options {:port 8080 :join? false}}))
+;; (def bs-started (component/start bs-created))
 
 "
 2019-08-07 10:21:47,531 INFO  org.eclipse.jetty.server.Server - jetty-9.4.12.v20180830; built: 2018-08-30T13:59:14.071Z; git: 27208684755d94a92186989f695db2d7b21ebc51; jvm 1.8.0_102-b14
@@ -82,10 +82,9 @@
 2019-08-07 10:21:47,542 INFO  org.eclipse.jetty.server.Server - Started @61386534ms
 "
 
+#_
 (def bs-stopped (component/stop bs-started))
 
-#_
-{:server #object[org.eclipse.jetty.server.Server 0x410a0712 "Server@410a0712{STARTED}[9.4.12.v20180830]"]}
 
 #_
 NullPointerException
