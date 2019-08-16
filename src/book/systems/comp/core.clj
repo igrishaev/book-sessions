@@ -6,11 +6,19 @@
    [book.systems.comp.db :refer [make-db]]))
 
 
+(defrecord Web
+    [db])
+
+(defn make-web []
+  (-> (map->Web {})
+      (component/using [:db])))
+
 
 (defn make-system
   [config]
   (let [{:keys [jetty pool worker]} config]
     (component/system-map
+     :web    (make-web)
      :server (make-server jetty)
      :db     (make-db pool)
      :worker (make-worker worker))))

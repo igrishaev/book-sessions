@@ -40,11 +40,42 @@
       (assoc this :server nil)))
 
 
+#_
 (defn make-handler [app db]
   (fn [request]
     (app (assoc request :db db))))
 
 
+
+#_
+(defroutes app
+  (GET "/"      request (page-index request))
+  (GET "/hello" request (page-hello request))
+  page-404)
+
+
+(require '[compojure.core
+           :refer [GET routes]])
+
+(defn page-index
+  [{:keys [db]} request]
+  (let [data (db/query db "select * from requests")]
+    {:status 200
+     :body (with-out-str
+             (clojure.pprint/pprint data))}))
+
+(defn make-routes [web]
+  (routes
+   (GET "/"      request (page-index web request))
+   #_(GET "/hello" request (page-hello web request))))
+
+
+
+(defn make-handler [app db]
+  (fn [request]
+    (app (assoc request :db db))))
+
+#_
 (defrecord Server
     [options
      server
@@ -62,6 +93,27 @@
       (assoc this :server nil)))
 
 
+(defrecord Server
+    [options
+     server
+     web]
+
+    component/Lifecycle
+
+    (start [this]
+      (let [routes (make-routes web)
+            server (run-jetty routes options)]
+        (assoc this :server server)))
+
+    (stop [this]
+      (.stop server)
+      (assoc this :server nil)))
+
+
+#_
+(defrecord Server
+    [options server web])
+
 
 #_
 (defn make-server
@@ -69,10 +121,17 @@
   (map->Server {:options options}))
 
 
+#_
 (defn make-server
   [options]
   (-> (map->Server {:options options})
       (component/using [:db])))
+
+
+(defn make-server
+  [options]
+  (-> (map->Server {:options options})
+      (component/using [:web])))
 
 ;; (def c0 (map->Server {:options {:port 8080 :join? false}}))
 ;; (def c1 (component/start c0))
