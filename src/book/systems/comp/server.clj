@@ -1,27 +1,78 @@
 (ns book.systems.comp.server
   (:require
    [com.stuartsierra.component :as component]
+   [book.systems.comp.db :as db]
    [ring.adapter.jetty :refer [run-jetty]]))
 
 (def app (constantly {:status 200 :body "Hello"}))
 
+#_
+(defn app
+  [request]
+  {:status 200
+   :body (with-out-str
+           (clojure.pprint/pprint request))})
+
+
+#_
+(defn app
+  [request]
+  (let [{:keys [db]} request
+        data (db/query db "select * from requests")]
+    {:status 200
+     :body (with-out-str
+             (clojure.pprint/pprint data))}))
+
+
+#_
 (defrecord Server
     [options
      server]
 
-  component/Lifecycle
+    component/Lifecycle
 
-  (start [this]
-    (let [server (run-jetty app options)]
-      (assoc this :server server)))
+    (start [this]
+      (let [server (run-jetty app options)]
+        (assoc this :server server)))
 
-  (stop [this]
-    (.stop server)
-    (assoc this :server nil)))
+    (stop [this]
+      (.stop server)
+      (assoc this :server nil)))
 
+
+(defn make-handler [app db]
+  (fn [request]
+    (app (assoc request :db db))))
+
+
+(defrecord Server
+    [options
+     server
+     db]
+
+    component/Lifecycle
+
+    (start [this]
+      (let [handler (make-handler app db)
+            server (run-jetty handler options)]
+        (assoc this :server server)))
+
+    (stop [this]
+      (.stop server)
+      (assoc this :server nil)))
+
+
+
+#_
 (defn make-server
   [options]
   (map->Server {:options options}))
+
+
+(defn make-server
+  [options]
+  (-> (map->Server {:options options})
+      (component/using [:db])))
 
 ;; (def c0 (map->Server {:options {:port 8080 :join? false}}))
 ;; (def c1 (component/start c0))
