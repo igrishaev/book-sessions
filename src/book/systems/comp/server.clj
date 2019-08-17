@@ -171,6 +171,26 @@
         (.stop server))
       (assoc this :server nil)))
 
+#_
+(start [this]
+  (if server
+    this
+    (let [server (run-jetty app options)]
+      (assoc this :server server))))
+
+
+#_
+(start [this]
+  (let [server (or server (run-jetty app options))]
+    (assoc this :server server)))
+
+
+#_
+(stop [this]
+  (when server
+    (.stop server))
+  (assoc this :server nil))
+
 
 #_
 (defrecord BadServer
@@ -198,3 +218,17 @@
 
 #_
 NullPointerException
+
+
+#_
+(def s (-> {:port 8088 :join? false}
+           make-server
+           component/start))
+
+#_
+(component/start s)
+
+"
+Execution error (BindException) at ...
+Address already in use
+"
