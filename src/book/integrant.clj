@@ -116,7 +116,7 @@
 
 (def alter-system (partial alter-var-root #'system))
 
-(defn system-start []
+(defn system-start [config]
   (alter-system (constantly (i/init config))))
 
 (defn system-stop []
