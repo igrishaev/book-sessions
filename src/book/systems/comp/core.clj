@@ -188,3 +188,9 @@
  :jetty {:join? false :port 8088}
  ;; etc
 }
+
+#_
+(defn -main [& args]
+  (let [config (load-config "config.edn")]
+    (system-init config)
+    (system-start)))

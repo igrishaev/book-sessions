@@ -1,0 +1,11 @@
+{:project.server/server {:options {:port 8080 :join? false}
+                         :handler #ig/ref :project.handlers/index}
+ :project.db/db {:password #env DB_PASSWORD}
+ :project.worker/worker {:options {:sleep 1000}
+                         :db #ig/ref :project.db/db}
+ :project.handlers/index {:db #ig/ref :project.db/db}}
+
+
+{:project.db/db {:password "c8497b517da25"}
+ :project.worker/worker {:options {:sleep 1000}
+                         :db #integrant.core.Ref{:key :project.db/db}}}
