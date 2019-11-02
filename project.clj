@@ -7,11 +7,17 @@
   :license {:name "Eclipse Public License"
             :url "http://www.eclipse.org/legal/epl-v10.html"}
 
+  :test-selectors
+  {:db-experimental
+   (fn [test-meta]
+     (some-> test-meta :pg/version (>= 11)))}
+
   :dependencies [[org.clojure/clojure "1.10.0"]
 
                  ;; for web
                  [compojure "1.6.1"]
 
+                 [ring/ring-json "0.5.0"]
                  [ring/ring-core "1.7.1"]
                  [ring/ring-jetty-adapter "1.7.1"]
 
