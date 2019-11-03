@@ -410,6 +410,7 @@ Tests failed.
      ~@body))
 
 
+#_
 (deftest test-sites-ok-events-err
   (with-mock book.views/get-sites-by-location []
     (with-mock book.views/get-events-by-location
@@ -421,9 +422,6 @@ Tests failed.
 (with-mock book.views/get-sites-by-location (throw (new Exception "AAAA"))
   (view-main-page {})
   )
-
-
-
 
 
 #_
@@ -447,6 +445,7 @@ Tests failed.
            {:events [...] :sites [...]}))))
 
 
+#_
 (deftest test-main-page
   (let [sites [{:name "Cafe1"} {:name "Cafe2"}]
         events [{:name "Event1"} {:name "Event2"}]]
@@ -476,7 +475,8 @@ Tests failed.
 
 
 
-(defn sites-hanler*
+#_
+(defn sites-handler*
   [request]
   (let [{:keys [uri]} request]
 
@@ -489,7 +489,6 @@ Tests failed.
                  clojure.java.io/resource
                  clojure.java.io/file)}
 
-      #_
       {:status 200
        :body [{:name "Cafe1" :address "..."}
               {:name "Cafe2" :address "..."}]}
@@ -499,15 +498,70 @@ Tests failed.
        :body "page not found"})))
 
 
-(def sites-hanler
-  (-> sites-hanler*
+#_
+(defn sites-handler* [{:keys [uri]}]
+  (case uri
+    "/search/v1/"
+    {:status 200
+     :body [{:name "Cafe1" :address "..."}
+            {:name "Cafe2" :address "..."}]}
+    {:status 404
+     :body "page not found"}))
+
+(defn sites-handler* [request]
+  (let [{:keys [uri params]} request
+        {:keys [lat lon]} params]
+    (case uri
+      "/search/v1/"
+      (case [lat lon]
+        ["0" "0"]   {:status 200 :body []}
+        ["66" "66"] {:status 403 :body {:error "ACCESS_ERROR"}}
+        ["42" "42"] (do (Thread/sleep (* 1000 35))
+                        {:status 200 :body []})
+        {:status 200
+         :body [{:name "Cafe1" :address "..."}
+                {:name "Cafe2" :address "..."}]})
+      {:status 404 :body "page not found"})))
+
+
+(def sites-handler
+  (-> sites-handler*
       wrap-keyword-params
       wrap-params
       wrap-json-response))
 
 
+#_
 (defn fix-fake-sites-server [t]
   (let [opt {:port 8808 :join? false}
-        server (run-jetty sites-hanler opt)]
+        server (run-jetty sites-handler opt)]
     (t)
     (.stop server)))
+
+
+(defonce ^:dynamic *server* nil)
+
+(defn fix-fake-sites-server [t]
+  (let [opt {:port 8808 :join? false}]
+    (binding [*server* (run-jetty sites-handler opt)]
+      (t)
+      (.stop *server*))))
+
+
+(use-fixtures :once fix-fake-sites-server)
+
+
+#_
+(deftest test-main-page
+  (let [request {:params {:lat 55.751244
+                          :lon 37.618423}}
+        result (view-main-page request)]
+    (is (= (:body result) {}))))
+
+
+(deftest test-the-website-is-down
+  (.stop *server*)
+  (let [request {:params {:lat 1 :lon 2}}
+        result (view-main-page request)]
+    (is (= (:body result) {})))
+  (.start *server*))

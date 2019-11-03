@@ -2,10 +2,15 @@
   (:require [clj-http.client :as client]))
 
 
+(def config {})
+
+
 (defn get-sites-by-location
   [{:keys [lat lon]}]
   (-> {:method :get
-       :url "https://maps.yandex.ru/search/v1/"
+       ;; :url "http://127.0.0.1:8808/search/v1/"
+       :url (str (:maps-base-url config ) "/search/v1/")
+       ;; :url "https://maps.yandex.ru/search/v1/"
        :as :json
        :query-params {:apikey "....."
                       :lat lat :lon lon
@@ -17,7 +22,8 @@
 (defn get-events-by-location
   [{:keys [lat lon]}]
   (-> {:method :get
-       :url "https://events.yandex.ru/search/v1/"
+       :url "http://127.0.0.1:8808/search/v1/"
+       ;; :url "https://events.yandex.ru/search/v1/"
        :as :json
        :query-params {:apikey "....."
                       :date "2019-11-01"

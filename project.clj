@@ -50,4 +50,7 @@
 
   :target-path "target/%s"
 
-  :profiles {:uberjar {:aot :all}})
+  ;; :uberjar {:aot :all}
+
+  :profiles {:test {:resource-paths ["env/test/resources"]}
+             :dev  {:resource-paths ["env/test/resources"]}})
