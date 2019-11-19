@@ -1,14 +1,34 @@
 (ns book.util-test
   (:require
 
+   [clojure.spec.alpha :as s]
+   [clojure.spec.gen.alpha :as gen]
+
    [ring.middleware.json :refer [wrap-json-response]]
    [ring.middleware.params :refer [wrap-params]]
    [ring.middleware.keyword-params :refer [wrap-keyword-params]]
    [ring.adapter.jetty :refer [run-jetty]]
 
+   [ring.mock.request :as mock]
+
+   [migratus.core :as migratus]
+
+   [clojure.java.jdbc :as jdbc]
+
+   [etaoin.api :as e]
+
    [book.util :refer [->fahr]]
-   [book.views :refer [view-main-page]]
-   [clojure.test :refer [deftest testing is are use-fixtures]]))
+   [book.views :refer [view-main-page app]]
+   [clojure.test :refer [deftest testing is are use-fixtures]])
+
+  (:import java.io.FileInputStream
+           java.util.zip.GZIPInputStream
+           org.postgresql.copy.CopyManager)
+
+  )
+
+
+
 
 
 ;; (ns ^:integration
@@ -27,10 +47,15 @@
 #_
 (use-fixtures :each aaa)
 
-#_
 (deftest test-fahr
-  (is (= (int (->fahr 20)) 68))
+  (is (= (int (->fahr 20)) 99999))
+
+
+  #_
   (is (= (int (->fahr 100)) 212)))
+
+
+
 
 
 (deftest test-fahr
@@ -152,7 +177,7 @@
 
 (defn fix-db-server [t])
 
-;; (use-fixtures :once fix-db-server fix-clear-files)
+,;; (use-fixtures :once fix-db-server fix-clear-files)
 ;; (use-fixtures :each fix-db-data)
 
 #_
@@ -541,13 +566,14 @@ Tests failed.
 
 (defonce ^:dynamic *server* nil)
 
+#_
 (defn fix-fake-sites-server [t]
   (let [opt {:port 8808 :join? false}]
     (binding [*server* (run-jetty sites-handler opt)]
       (t)
       (.stop *server*))))
 
-
+#_
 (use-fixtures :once fix-fake-sites-server)
 
 
@@ -559,9 +585,461 @@ Tests failed.
     (is (= (:body result) {}))))
 
 
+#_
 (deftest test-the-website-is-down
   (.stop *server*)
   (let [request {:params {:lat 1 :lon 2}}
         result (view-main-page request)]
     (is (= (:body result) {})))
   (.start *server*))
+
+
+#_
+(ns user
+  (:require [migratus.core :as migratus]))
+
+;; (def config {...})
+;; (migratus/migrate config)
+
+
+;; (ns user
+;;   (:require [migratus.core :as migratus]))
+;; (def config {...})
+;; (migratus/migrate config)
+
+
+
+(def ^:dynamic *db*
+  {:dbtype "postgresql"
+   :dbname "test"
+   :host "127.0.0.1"
+   :user "ivan"
+   :password "ivan"
+   :assumeMinServerVersion "10"})
+
+
+#_
+(def db-data
+  [[:users {:name "Ivan" :email "ivan@test.com"}]
+   [:users {:name "Juan" :email "Juan@test.com"}]
+   [:groups {:name "Dog fans" :topics 6}]
+   [:groups {:name "Cat fans" :topics 7}]])
+
+
+#_
+(defn load-data []
+  (doseq [[table row] db-data]
+    (jdbc/insert! *db* table row)))
+
+
+#_
+(defn with-db-data [t]
+  (load-data) (t))
+
+
+(def db-data
+  [[:users [{:name "Ivan" :email "ivan@test.com"}
+            {:name "Juan" :email "Juan@test.com"}]]
+   [:groups [{:name "Dog fans" :topics 6}
+             {:name "Cat fans" :topics 7}]]])
+
+
+(defn load-data []
+  (doseq [[table rows] db-data]
+    (jdbc/insert-multi! *db* table rows)))
+
+
+#_
+(jdbc/execute! *db* "COPY users(name,email) FROM '/Users/ivan/work/book/env/test/resources/data/users.csv' DELIMITER ',' CSV HEADER")
+
+
+#_
+(jdbc/execute! *db*
+  "
+  COPY users(name,email)
+  FROM '/Users/ivan/work/book/env/test/resources/data/users.csv'
+  DELIMITER ',' CSV HEADER
+  ")
+
+(defn load-data-gz []
+  (let [conn (jdbc/get-connection *db*)
+        copy (CopyManager. conn)
+        stream (-> "data/users.csv.gz"
+                   clojure.java.io/resource
+                   clojure.java.io/file
+                   FileInputStream.
+                   GZIPInputStream.)]
+    (.copyIn copy "COPY users(name, email)
+                   FROM STDIN (FORMAT CSV, HEADER true)"
+             stream)
+    (.close conn)))
+
+
+
+
+#_(jdbc/insert! *db* :groups {:id 3 :name "Clojure fans"})
+#_(jdbc/insert! *db* :users {:group_id 3 :name "Ivan"})
+
+
+#_
+(defn foo []
+  (let [config {:store :database
+                :migration-dir "migrations"
+                :db *db*}]
+
+
+    (migratus/init config)
+    (migratus/pending-list config)
+    ))
+
+
+(def id-user-admin 1)
+
+(def db-data
+  [[:users [{:id id-user-admin :name "Ivan"}]]
+   [:profiles [{:id 1 :user_id id-user-admin :avatar "..."}]
+    :posts [{:id 1 :user_id id-user-admin :title "New book"}
+            {:id 2 :user_id id-user-admin :title "Some post"}]]])
+
+
+#_
+(let [tables (set (map first db-data))
+      query "TRUNCATE %s CASCADE"]
+  (doseq [table tables]
+    (jdbc/execute! *db* (format query (name table)))))
+
+
+(defn delete-data []
+  (let [tables (set (map first db-data))
+        tables-comma (clojure.string/join "," (map name tables))
+        query (format "TRUNCATE %s CASCADE" tables-comma)]
+    (jdbc/execute! *db* query)))
+
+
+#_
+(let [value 100
+      tables (set (map first db-data))
+      query "ALTER SEQUENCE %s_id_seq RESTART WITH %s"]
+  (doseq [table tables]
+    (jdbc/execute! *db* (format query (name table) value))))
+
+
+;; user
+^{:entity :users/admin} {:name "Ivan" :email "ivan@test.com"}
+;; profile
+{:user_id :users/admin :avatar "/images/ivan.png"}
+;; posts
+{:user_id :users/admin :title "New book"}
+{:user_id :users/admin :title "Some post"}
+
+
+;; (jdbc/insert! *db* :users {:name "Ivan"})
+;; ({:id 42 :name "Ivan}) ;; for PostgreSQL
+;; ({:generated_key 42})  ;; for MariaDB
+
+
+
+
+"alter sequence users_id_seq restart with 100"
+
+"
+ERROR:  duplicate key value violates unique constraint 'groups_pkey'
+DETAIL:  Key (id)=(3) already exists.
+"
+
+
+"
+BEGIN;
+INSERT INTO users ...
+INSERT INTO profiles ...
+UPDATE users SET ...
+ROLLBACK;
+"
+
+
+(defmacro with-db-rollback
+  [[t-conn & bindings] & body]
+  `(jdbc/with-db-transaction [~t-conn ~@bindings]
+     (jdbc/db-set-rollback-only! ~t-conn)
+     ~@body))
+
+
+#_
+(with-db-rollback
+  [tx *db*]
+  (println "Inserting the data...")
+  (jdbc/insert! tx :users {:name "Ivan"})
+  (let [...]
+    (do-something)))
+
+#_
+(defn with-db-data [t]
+  (with-db-rollback [tx *db*]
+    ()
+
+    )
+
+
+  (load-data) (t))
+
+
+#_
+(deftest test-logic-with-rollback
+  (with-db-rollback [tx *db*]
+    (load-data tx)
+    (let [user (get-user-by-name tx "Ivan")]
+      (is (= "Ivan" (:name user))))))
+
+#_
+(deftest test-logic-with-rollback
+  (with-db-rollback [tx *db*]
+    (binding [*db* tx]
+      (load-data)
+      (let [user (get-user-by-name "Ivan")]
+        (is (= "Ivan" (:name user)))))))
+
+
+(deftest test-app-index
+  (let [request {:request-method :get :uri "/"}
+        response (app request)
+        {:keys [status body]} response]
+    (is (= 200 status))))
+
+(deftest test-app-page-not-found
+  (let [request {:request-method :get :uri "/missing"}
+        response (app request)
+        {:keys [status body]} response]
+    (is (= 404 status))))
+
+
+#_
+(do
+
+  (mock/request :get "/test")
+
+  (mock/request :get "/movies" {:search "batman" :page 1})
+
+  (mock/request :post "/users" {:name "Ivan" :email "test@test.com"})
+
+  (-> (mock/request :post "/users")
+      (mock/json-body {:name "Ivan" :email "test@test.com"}))
+
+  (sites-handler (mock/request :get "/search/v1/" {:lat 11 :lon 22}))
+
+
+  (let [request (mock/request :get "/search/v1/" {:lat 11 :lon 22})
+        response (sites-handler request)
+        body (-> response :body (cheshire.core/parse-string true))]
+    (is (= {:some :data} body))))
+
+
+#_
+{:sites [{:name "Site1" :date-updated (new Date) :id 42}]}
+
+
+#_
+(let [body* (update body :sites
+                    (fn [sites]
+                      (map (fn [site]
+                             (dissoc site :id :date-updated))
+                           sites)))]
+  (is (= {} body*)))
+
+
+;; {:sites ({:name "Site1"} {:name "Site2"})}
+
+
+
+;; (defn fix-system [t]
+;;   (system/start!)
+;;   (t)
+;;   (system/stop!))
+
+
+;; (defn fix-db-data [t]
+;;   (let [{:keys [db]} system/system]
+;;     (prepare-test-data db)
+;;     (t)
+;;     (clear-test-data db)))
+
+;; (use-fixtures :once fix-system fix-db-data)
+
+
+;; (def state-field ::started?)
+
+
+;; (defn stop! []
+;;   (let [sys (-> system
+;;                 component/stop-system
+;;                 (with-meta {state-field false}))]
+;;     (alter-var-root #'system (constantly sys))))
+
+
+;; (defn start! []
+;;   (let [sys (-> system
+;;                 component/start-system
+;;                 (with-meta {state-field true}))]
+;;     (alter-var-root #'system (constantly sys))))
+
+
+;; (defn started? []
+;;   (some-> system meta (get state-field)))
+
+
+;; (defn fixture-system [t]
+;;   (let [started-manually? (system/started?)]
+;;     (when-not started-manually?
+;;       (start!))
+;;     (t)
+;;     (when-not started-manually?
+;;       (stop!))))
+
+
+(deftest test-ui-login-ok
+  (e/with-chrome {} driver
+    (e/go driver "http://127.0.0.1:8080/login")
+    (e/wait-visible driver {:fn/has-text "Login"})
+    (e/fill-human driver {:tag :input :name :email} "test@test.com")
+    (e/fill-human driver {:tag :input :name :password} "J3QQ4-H7H2V")
+    (e/click driver {:tag :button :fn/text "Login"})
+    (e/wait-visible driver {:fn/has-text "Welcome"})
+    (is (e/visible? driver {:tag :a :fn/text "My profile"}))
+    (is (e/visible? driver {:tag :button :fn/text "Logout"}))))
+
+
+    ;; (e/click driver {:tag :button :fn/text "Logout"})
+    ;; (e/wait-visible driver {:fn/has-text "Bye!"})
+    ;; (e/wait-visible driver {:fn/has-text "Login"})
+
+
+(defonce ^:dynamic *driver* nil)
+
+(defn fix-chrome [t]
+  (e/with-chrome {} driver
+    (binding [*driver* driver]
+      (t))))
+
+(defn fix-multi-driver [t]
+  (doseq [driver-type [:firefox :chrome]]
+    (e/with-driver driver-type {} driver
+      (binding [*driver* driver]
+        (testing (format "Browser %s" (name driver-type))
+          (t))))))
+
+
+#_
+(e/with-chrome {} driver
+  (doto driver
+    (e/go "http://127.0.0.1:8080/login")
+    (e/wait-visible {:fn/has-text "Login"})
+    (e/fill-human {:tag :input :name :email} "test@test.com")
+    (e/fill-human {:tag :input :name :password} "J3QQ4-H7H2V")
+    (e/click {:tag :button :fn/text "Login"}))
+
+  (is (e/visible? driver {:tag :a :fn/text "My profile"}))
+  (is (e/visible? driver {:tag :button :fn/text "Logout"})))
+
+
+(defn fix-login-logout [t]
+  (doto *driver*
+    (e/go "http://127.0.0.1:8080/login")
+    (e/fill {:tag :input :name :email} "test@test.com")
+    (e/click {:tag :button :fn/text "Login"}))
+  (t)
+  (doto *driver*
+    (e/click {:tag :button :fn/text "Logout"})
+    (e/wait-has-text "Login")))
+
+
+#_
+
+(with-mock mock
+  {:target :project.path/get-geo-point
+   :return {:lat 14.23 :lng 52.52}}
+  (get-geo-point "cafe" "200m"))
+
+
+#_
+
+{:called? true
+ :call-count 3
+ :call-args '(1 2 3)
+ :call-args-list '[(1) (1 2) (1 2 3)] ;; args history
+ :return 42              ;; the last result
+ :return-list [42 42 42] ;; the entire result history
+ }
+
+#_
+
+
+(let [{:keys [called? call-count call-args]} @mock]
+  (is called?)
+  (is (= 1 call-count))
+  (is (= '("cafe" "200m") call-args)))
+
+
+;; (defn adder [x y] (+ x y))
+;; (def spy-adder (spy/spy adder))
+;; (testing "calling the function"
+;;   (is (= 3 (spy-adder 1 2))))
+;; (testing "calls to the spy can be accessed via spy/calls"
+;;   (is (= [[1 2]] (spy/calls spy-adder))))
+
+
+#_
+(facts "about `split`"
+ (str/split "a/b/c" #"/") => ["a" "b" "c"]
+ (str/split "" #"irrelvant") => [""])
+
+
+;; :plugins [[test2junit "1.1.2"]]
+;; :test2junit-output-dir "target/test2junit"
+
+
+;; (defrecord User [user-name user-id active?])
+
+;; (def user-gen
+;;   (gen/fmap (partial apply ->User)
+;;             (gen/tuple (gen/not-empty gen/string-alphanumeric)
+;;                        gen/nat
+;;                        gen/boolean)))
+
+;; (last (gen/sample user-gen))
+;; => #user.User{:user-name "kWodcsE2"
+;;               :user-id 1
+;;               :active? true}
+
+
+(s/def :user/id int?)
+(s/def :user/name string?)
+(s/def :user/active? boolean?)
+(s/def ::user (s/keys :req-un [:user/id :user/name :user/active?]))
+
+(deftest test-aaa
+  (is (= 5 (+ 2 2)))
+  )
+
+
+
+
+"
+
+;; wrong                ;; correct
+(is (= status 200))     (is (= 200 status))
+
+Fail in test-...        Fail in test-...
+expected: 404           expected: 200
+  actual: 200             actual: 404
+    diff: - 404             diff: - 200
+          + 200                   + 404
+"
+
+
+
+"
+
+
+
+
+
+"

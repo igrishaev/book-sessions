@@ -1,5 +1,16 @@
 (ns book.views
-  (:require [clj-http.client :as client]))
+  (:require [clj-http.client :as client]
+            [compojure.core :refer [GET defroutes]]
+
+            [ring.middleware.json :refer [wrap-json-response
+                                          wrap-json-body]]
+            [ring.middleware.params :refer [wrap-params]]
+            [ring.middleware.keyword-params :refer [wrap-keyword-params]]
+
+            ))
+
+
+
 
 
 (def config {})
@@ -39,3 +50,40 @@
         events (get-events-by-location location)]
     {:status 200
      :body {:sites sites :events events}}))
+
+
+
+;;;;;;;;;;;;;;;;;
+
+
+(defn page-index
+  [request]
+  {:status 200
+   :headers {:content-type "text/plain"}
+   :body "Learning Web for Clojure"})
+
+(defn page-hello
+  [request]
+  {:status 200
+   :headers {:content-type "text/plain"}
+   :body "Hi there and keep trying!"})
+
+(defn page-404
+  [request]
+  {:status 404
+   :headers {:content-type "text/plain"}
+   :body "No such a page."})
+
+
+(defroutes app-naked
+  (GET "/"      request (page-index request))
+  (GET "/hello" request (page-hello request))
+  page-404)
+
+
+(def app
+  (-> app-naked
+      wrap-keyword-params
+      wrap-params
+      wrap-json-body
+      wrap-json-response))

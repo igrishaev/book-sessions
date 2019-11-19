@@ -23,6 +23,7 @@
 
                  ;; for spec chapter
                  [org.clojure/java.jdbc "0.7.8"]
+                 [migratus "1.2.7"]
 
                  ;; for exceptions chapter
                  [slingshot "0.12.2"]
@@ -46,11 +47,18 @@
 
                  [mount "0.1.16"]
                  [com.stuartsierra/component "0.4.0"]
-                 [integrant "0.7.0"]]
+                 [integrant "0.7.0"]
+
+                 ;; tests
+                 [ring/ring-mock "0.4.0"]
+                 [org.clojure/test.check "0.10.0"]
+                 [etaoin "0.3.6"]]
 
   :target-path "target/%s"
 
   ;; :uberjar {:aot :all}
 
-  :profiles {:test {:resource-paths ["env/test/resources"]}
+  :profiles {;; :uberjar {:resource-paths ["env/test/resources"]}
+
+             :test {:resource-paths ["env/test/resources"]}
              :dev  {:resource-paths ["env/test/resources"]}})
