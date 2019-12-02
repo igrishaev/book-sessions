@@ -563,6 +563,31 @@ Tests failed.
     (t)
     (.stop server)))
 
+(defmulti multi-handler :foo)
+
+(defmethod multi-handler :page-save
+  [request]
+  (let [{:keys [params route-params]} request
+        {order-id :id} route-params
+        fields (select-keys params [:title :description :price])]
+    (jdbc/update! *db* :orders params ["id = ?" order-id])
+    {:status 302
+     :headers {:Location (format "/content/order/%s/view" order-id)}}))
+
+
+(def render-order-page)
+
+(def get-order-by-id)
+
+(def response-404)
+
+(defmethod multi-handler :page-view
+  [request]
+  (if-let [order (-> request :route-params :id get-order-by-id)]
+    {:status 200
+     :headers {:content-type "text/html"}
+     :body (render-order-page {:order order})}
+    response-404))
 
 (defonce ^:dynamic *server* nil)
 
