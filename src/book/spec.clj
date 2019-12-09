@@ -381,6 +381,8 @@
        (filter (complement str/blank?))
        (filter (complement comment?))))
 
+
+
 (s/def :ini/title
   (s/and
    #(str/starts-with? % "[")
@@ -395,10 +397,13 @@
         pair
         ::s/invalid))))
 
+(s/def :ini/block
+  (s/cat :title :ini/title :fields (s/* :ini/field)))
+
 (s/def ::->ini-config
   (s/and
    (s/conformer clear-ini-lines)
-   (s/* (s/cat :title :ini/title :fields (s/* :ini/field)))))
+   (s/* :ini/block)))
 
 (defn parse
   [path]
