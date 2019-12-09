@@ -383,6 +383,7 @@
 
 
 
+#_
 (s/def :ini/title
   (s/and
    #(str/starts-with? % "[")
@@ -390,10 +391,23 @@
    (with-conformer val
      (subs val 1 (dec (count val))))))
 
+(s/def :ini/title
+  (with-conformer line
+    (or (second (re-matches #"^\[(.+)\]$" line))
+        ::s/invalid)))
+
+#_
 (s/def :ini/field
   (with-conformer val
     (let [[key val :as pair] (str/split val #"=" 2)]
       (if (and key val)
+        pair
+        ::s/invalid))))
+
+(s/def :ini/field
+  (with-conformer line
+    (let [pair (str/split line #"=" 2)]
+      (if (= (count pair) 2)
         pair
         ::s/invalid))))
 
