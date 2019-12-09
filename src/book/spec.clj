@@ -397,13 +397,13 @@
         pair
         ::s/invalid))))
 
-(s/def :ini/block
+(s/def :ini/section
   (s/cat :title :ini/title :fields (s/* :ini/field)))
 
 (s/def ::->ini-config
   (s/and
    (s/conformer clear-ini-lines)
-   (s/* :ini/block)))
+   (s/* :ini/section)))
 
 (defn parse
   [path]
