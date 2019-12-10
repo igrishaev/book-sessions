@@ -576,3 +576,56 @@ should satisfy
 -------------------------
 Detected 1 error
 "
+#_
+(s/def :defn/body
+  (s/cat :args vector?
+         :prepost (s/? map?)
+         :code (s/* any?)))
+#_
+(s/def ::defn
+  (s/cat :tag (partial = 'defn)
+         :name symbol?
+         :body :defn/body))
+#_
+(s/def ::defn
+  (s/cat :tag (partial = 'defn)
+         :name symbol?
+         :body (s/+ (s/spec :defn/body))))
+
+#_
+(s/def :defn/body*
+  (s/alt :single :defn/body
+         :multi (s/+ (s/spec :defn/body))))
+
+#_
+(s/def ::defn
+  (s/cat :tag (partial = 'defn)
+         :name symbol?
+         :doc (s/? string?)
+         :body :defn/body*))
+
+;; (s/conform ::defn '(defn my-inc [x] (println 1)))
+;; {:tag defn, :name my-inc, :body [:single {:args [x], :code [(println 1)]}]}
+
+;; (s/conform ::defn '(defn my-inc ([x] (println 1)) ([x y] (println 2))))
+;; {:tag defn, :name my-inc, :body [:multi [{:args [x], :code [(println 1)]} {:args [x y], :code [(println 2)]}]]}
+
+#_
+{:tag defn
+ :name my-inc
+ :doc "Increase a number"
+ :body
+ [:single
+  {:args [x]
+   :prepost {:pre [(int? x)] :post [(int? %)]}
+   :code [(+ x 1)]}]}
+
+#_
+(let [{:keys [body]} result
+      [tag body] body]
+  (case tag
+    :single
+    (process-body body)
+    :multi
+    (doseq [body body]
+      (process-body body))))
