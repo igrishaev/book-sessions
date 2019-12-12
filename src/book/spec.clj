@@ -505,7 +505,7 @@
 (import 'java.util.Date)
 
 (defn date-range-sec
-  "Return a difference between two dates in seconds."
+  "Return the difference between two dates in seconds."
   [^Date date1 ^Date date2]
   (quot (- (.getTime date2)
            (.getTime date1))
@@ -531,7 +531,7 @@
    (date-range-sec #inst "2019" #inst "2020")))
 
 (defn date-range-sec-orig
-  "Return a difference between two dates in seconds."
+  "Return the difference between two dates in seconds."
   [^Date date1 ^Date date2]
   (quot (- (.getTime date2)
            (.getTime date1))
