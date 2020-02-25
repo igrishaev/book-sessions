@@ -132,6 +132,11 @@
     	(catch Exception e
       	  ::s/invalid))))))
 
+
+(s/def ::->date
+  (s/and ::ne-string (s/conformer read-instant-date)))
+
+
 (s/conform ::->date "2019-12-31")
 
 (s/conform ::->date "2019-12-31T23:59:59")
@@ -629,3 +634,70 @@ Detected 1 error
     :multi
     (doseq [body body]
       (process-body body))))
+
+(def spec-h
+  (-> (make-hierarchy)
+      (derive :account/email ::email)
+      (derive :account/email2 ::email)))
+
+#_
+(derive :account/email ::email)
+#_
+(derive :account/email2 ::email)
+
+(defmulti problem->text
+  (fn [{:keys [via]}]
+    (last via)))
+
+#_
+(defmulti problem->text
+  (fn [{:keys [via]}]
+    (last via))
+  :hierarchy #'spec-h)
+
+(defmethod problem->text :default [_]
+  default-message)
+
+(defmethod problem->text ::ne-string [_]
+  "Строка не должна быть пустой")
+
+(defmethod problem->text ::email [_]
+  "Введите правильный почтовый адрес")
+
+#_
+(defmethod problem->text :account/email [_]
+  "Введите почту сотрудника")
+
+(defmethod problem->text :account/email
+  [{:keys [val]}]
+  (format "Ошибка в адресе почты: %s" val))
+
+#_
+{:path [:username]
+ :pred clojure.core/not-empty
+ :val ""
+ :via [::sample ::ne-string]
+ :in [:username]}
+
+#_
+(def spec-errors
+  {::ne-string "Строка не должна быть пустой"
+   ::email "Введите правильный почтовый адрес"})
+
+#_
+{:path [:email]
+ :pred
+ (clojure.core/partial
+  clojure.core/re-matches
+  #"(.+?)@(.+?)\.(.+?)")
+ :val "test"
+ :via [::sample :sample/email]
+ :in [:email]}
+
+
+#_
+{:path [:email],
+ :pred (clojure.core/partial clojure.core/re-matches #"(.+?)@(.+?)\.(.+?)"),
+ :val "ddddd",
+ :via [:book.spec/sample :book.spec/email],
+ :in [:email]}
