@@ -1,4 +1,6 @@
-(ns book.config)
+(ns book.config
+  (:require
+   [clojure.spec.alpha :as s]))
 
 #_
 (def server
@@ -83,6 +85,19 @@
    (s/tuple ->date ->date)
    ::date-range))
 
+(s/def ::ne-string (s/and string? not-empty))
+
+(s/def :db/dbtype   #{"mysql"})
+(s/def :db/dbname   ::ne-string)
+(s/def :db/user     ::ne-string)
+(s/def :db/password ::ne-string)
+
+(s/def ::db
+  (s/keys :req-un [:db/dbtype
+                   :db/dbname
+                   :db/user
+                   :db/password]))
+
 (s/def ::config
   (s/keys :req-un [::server_port ::db ::event]))
 
@@ -97,7 +112,8 @@
 ;;-------
 (defn load-config!
   []
-  (-> (get-config-path)
+  (-> #_(get-config-path)
+      "config.json"
       (read-config-file)
       (coerce-config)
       (set-config!)))
@@ -426,12 +442,14 @@ COMMAND_MODE=unix2003
 ;; yummy
 ;;
 
+#_
 (require '[yummy.config :refer [load-config]])
 
 ;; (load-config {:path "config.yaml"})
 
 ;; (load-config {:program-name :book})
 
+#_
 (load-config {:program-name :book
               :spec ::config})
 
@@ -445,6 +463,7 @@ COMMAND_MODE=unix2003
               (println msg)
               (println (ex-message e))))})
 
+#_
 (load-config
  {:program-name :book
   :spec ::config

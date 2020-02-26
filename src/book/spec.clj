@@ -195,7 +195,7 @@
   (enum "todo" "in_progres" "done"))
 
 (defmacro with-conformer
-  [bind & body]
+  [[bind] & body]
   `(s/conformer
 	(fn [~bind]
   	  (try
@@ -206,7 +206,7 @@
 (s/def ::->int
   (s/and
    ::ne-string
-   (with-conformer val
+   (with-conformer [val]
  	 (Integer/parseInt val))))
 
 (def ->lower
@@ -217,7 +217,7 @@
 (s/def ::->bool
   (s/and
    ->lower
-   (with-conformer val
+   (with-conformer [val]
  	 (case val
        ("true"  "1" "on"  "yes") true
    	   ("false" "0" "off" "no" ) false))))
@@ -322,7 +322,7 @@
 (s/def :user/status
   (s/and
    ->lower
-   (with-conformer val
+   (with-conformer [val]
      (case val
        "active" :USER_ACTIVE
        "pending" :USER_PENDING))))
@@ -393,24 +393,24 @@
   (s/and
    #(str/starts-with? % "[")
    #(str/ends-with? % "]")
-   (with-conformer val
+   (with-conformer [val]
      (subs val 1 (dec (count val))))))
 
 (s/def :ini/title
-  (with-conformer line
+  (with-conformer [line]
     (or (second (re-matches #"^\[(.+)\]$" line))
         ::s/invalid)))
 
 #_
 (s/def :ini/field
-  (with-conformer val
+  (with-conformer [val]
     (let [[key val :as pair] (str/split val #"=" 2)]
       (if (and key val)
         pair
         ::s/invalid))))
 
 (s/def :ini/field
-  (with-conformer line
+  (with-conformer [line]
     (let [pair (str/split line #"=" 2)]
       (if (= (count pair) 2)
         pair
@@ -701,3 +701,75 @@ Detected 1 error
  :val "ddddd",
  :via [:book.spec/sample :book.spec/email],
  :in [:email]}
+
+#_
+(s/def ::->int
+  (s/and
+   ::ne-string
+   (s/conformer
+    (fn [string]
+      (Integer/parseInt string))
+    (fn [integer]
+      (str integer)))))
+
+#_
+(s/def ::->int
+  (s/and
+   ::ne-string
+   (s/conformer
+    (fn [string]
+      (Integer/parseInt string))
+    (fn [integer]
+      integer))))
+
+
+#_
+(s/conformer
+ (fn [string] (Integer/parseInt string))
+ (fn [integer] integer))
+
+#_
+(defmacro with-conformer
+  [[bind] & body]
+  `(s/conformer
+    (fn [~bind]
+      (try
+        ~@body
+        (catch Exception e#
+          ::s/invalid)))
+    identity))
+
+#_
+(def db-spec
+  {:dbtype "mysql" :host "127.0.0.1"
+   :port 3306 :dbname "project" :user "user"})
+
+#_
+(s/conform ::jdbc/db-spec db-spec)
+
+#_
+[:friendly {:dbtype [:name "mysql"]
+            :host   "127.0.0.1"
+            :port   [:port 3306]
+            :dbname "project"
+            :user   "user"}]
+
+#_
+(def config
+  {:db {:dbtype "mysql"
+        :host "127.0.0.1"
+        :port 3306
+        :dbname "project"
+        :user "user"
+        :password "********"
+        :useSSL true}})
+
+{:db
+ [:friendly
+  {:dbtype   [:name "mysql"]
+   :host     "127.0.0.1"
+   :port     [:port 3306]
+   :dbname   "project"
+   :user     "user"
+   :password "********"
+   :useSSL   true}]}
