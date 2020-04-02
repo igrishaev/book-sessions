@@ -20,19 +20,26 @@
     (cond
       (pos? D) [(/ (+ (- b) (Math/sqrt D)) (* 2 a))
                 (/ (- (- b) (Math/sqrt D)) (* 2 a))]
-      (zero? D) (/ (- b) (* 2 a))
+      (zero? D) [(/ (- b) (* 2 a))]
       (neg? D) nil)))
-
 
 (defn test-square-roots-two-roots []
   (let [[x1 x2] (square-roots 1 -5 6)]
-    (assert (= [(int x1) (int x2)] [3 2]))))
+    (assert (= [3 2] [(int x1) (int x2)]))))
 
 (defn test-square-roots-one-root []
-  (assert (= (square-roots 1 6 9) -3)))
+  (let [[x1 x2] (square-roots 1 6 9)]
+    (assert (= [-3] [(int x1)]))
+    (assert (nil? x2))))
 
 (defn test-square-roots-no-roots []
-  (assert (= (square-roots 2 4 7) nil)))
+  (assert (nil? (square-roots 2 4 7))))
+
+
+#_
+(do (test-square-roots-two-roots)
+    (test-square-roots-one-root)
+    (test-square-roots-no-roots))
 
 
 ;; +(defn square-roots [a b c]
@@ -40,13 +47,15 @@
 ;; +    (cond
 ;; +      (pos? D) [(/ (+ (- b) (Math/sqrt D)) (* 2 a))
 ;; +                (/ (- (- b) (Math/sqrt D)) (* 2 a))]
-;; -      (zero? D) (/ (- b) (* 2 a))
+;; -      (zero? D) [(/ (- b) (* 2 a))]
 ;; -      (neg? D) nil)))
+
 
 
 (defn sign-params [params secret-key])
 
 
+#_
 (defn test-sign-params []
   (let [api-key "2Ag48&@%776^634Tsdf23"
         params {:action :postComment
@@ -55,6 +64,20 @@
                 :comment "This is a great article!"}
         signature "e36b331823b..."]
     (assert (= (sign-params params api-key)
+               (assoc params :signature signature)))))
+
+
+
+
+(defn test-sign-params []
+  (let [public-key "2Ag48776s634Tsdf"
+        secret-key "fnsd809SDf2dfs3t"
+        params {:action :postComment
+                :post_id 217
+                :comment "This is a great article!"
+                :api_key public-key}
+        signature "01b03dbf1fa5a4c5"]
+    (assert (= (sign-params params secret-key)
                (assoc params :signature signature)))))
 
 

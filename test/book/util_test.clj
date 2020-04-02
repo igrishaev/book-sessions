@@ -93,6 +93,9 @@
 (deftest test-fahr-nil
   (is (nil? (->fahr nil))))
 
+(deftest test-fahr-nil2
+  (is (nil? (->fahr nil))))
+
 #_
 (deftest test-fahr-nil
   (try
@@ -110,23 +113,21 @@
        IllegalArgumentException #"Fahrenheit temperature"
        (->fahr nil))))
 
-
-
 (defn square-roots [a b c]
   (let [D (- (* b b) (* 4 a c))]
     (cond
       (pos? D) [(/ (+ (- b) (Math/sqrt D)) (* 2 a))
                 (/ (- (- b) (Math/sqrt D)) (* 2 a))]
-      (zero? D) (/ (- b) (* 2 a))
+      (zero? D) [(/ (- b) (* 2 a))]
       (neg? D) nil)))
-
 
 (deftest test-square-roots
   (testing "Two roots"
     (let [result (square-roots 1 -5 6)]
-      (is (= (mapv int result) [3 2]))))
+      (is (= [3 2] (mapv int result)))))
   (testing "One root"
-    (is (= (square-roots 1 6 9) -3)))
+    (let [result (square-roots 1 6 9)]
+      (is (= [-3] (mapv int result)))))
   (testing "No roots"
     (is (nil? (square-roots 2 4 7)))))
 
