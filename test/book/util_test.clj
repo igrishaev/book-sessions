@@ -59,9 +59,9 @@
 
 
 (deftest test-fahr
-  (are [f c] (= (int (->fahr f)) c)
-    20 68
-    100 212))
+  (are [c f] (= c (int (->fahr f)))
+    68 20
+    212 100))
 
 
 
