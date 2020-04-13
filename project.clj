@@ -15,6 +15,7 @@
   :dependencies [[org.clojure/clojure "1.10.0"]
 
                  ;; for web
+                 [bidi "2.1.5"]
                  [compojure "1.6.1"]
 
                  [ring/ring-json "0.5.0"]
@@ -50,6 +51,7 @@
                  [integrant "0.7.0"]
 
                  ;; tests
+                 [tortue/spy "2.0.0"]
                  [ring/ring-mock "0.4.0"]
                  [org.clojure/test.check "0.10.0"]
                  [etaoin "0.3.6"]]

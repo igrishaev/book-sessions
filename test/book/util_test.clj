@@ -2,6 +2,7 @@
   (:require
 
    [clojure.spec.alpha :as s]
+   #_
    [clojure.spec.gen.alpha :as gen]
 
    [ring.middleware.json :refer [wrap-json-response]]
@@ -223,6 +224,17 @@
 ;;            :main-opts ["-m" "cognitect.test-runner"]}}
 
 
+#_
+(defn fix-pg-only [t]
+  (when (= (:dbtype *db*) "postgresql")
+    (t)))
+
+#_
+(defn fix-pg-only [t]
+  (let [{:keys [dbtype]} *db*]
+    (if (= dbtype "postgresql")
+      (t)
+      (is false (str "Unsupported DB " dbtype)))))
 
 #_
 (defn fix-mac-only [t]
@@ -1021,14 +1033,18 @@ ROLLBACK;
 ;; :plugins [[test2junit "1.1.2"]]
 ;; :test2junit-output-dir "target/test2junit"
 
+#_
+(require '[clojure.test.check.generators :as gen])
 
-;; (defrecord User [user-name user-id active?])
+#_
+(defrecord User [user-name user-id active?])
 
-;; (def user-gen
-;;   (gen/fmap (partial apply ->User)
-;;             (gen/tuple (gen/not-empty gen/string-alphanumeric)
-;;                        gen/nat
-;;                        gen/boolean)))
+#_
+(def user-gen
+  (gen/fmap (partial apply ->User)
+            (gen/tuple (gen/not-empty gen/string-alphanumeric)
+                       gen/nat
+                       gen/boolean)))
 
 ;; (last (gen/sample user-gen))
 ;; => #user.User{:user-name "kWodcsE2"
@@ -1036,10 +1052,15 @@ ROLLBACK;
 ;;               :active? true}
 
 
+
+
 (s/def :user/id int?)
 (s/def :user/name string?)
 (s/def :user/active? boolean?)
 (s/def ::user (s/keys :req-un [:user/id :user/name :user/active?]))
+
+#_
+(gen/generate (s/gen ::user))
 
 (deftest test-aaa
   (is (= 5 (+ 2 2)))
@@ -1062,10 +1083,77 @@ expected: 404           expected: 200
 
 
 
-"
 
 
 
 
+(import 'javax.imageio.ImageIO)
 
-"
+#_
+(deftest test-plot-chart-png
+  (let [dataset [[...] [...] [...]]
+        filepath (.getAbsPath *file*)]
+    (plot-chart dataset filepath)
+    (let [png (ImageIO/read *file*)
+          width (.getWidth png)
+          height (.getHeight png)])
+    (is (= [640 480] [width height]))))
+
+#_
+(defn restart-db-ids []
+  (let [value 100
+        tables (set (map first db-data))
+        query "ALTER SEQUENCE %s_id_seq RESTART WITH %s"]
+    (doseq [table tables]
+      (jdbc/execute! *db* (format query (name table) value)))))
+
+#_
+(defn get-key-from-insert [result]
+  (let [[row] result
+        {:keys [id generated_key]} row]
+    (or id generated_key)))
+
+#_
+(defn fix-sites [body]
+  (update body :sites
+          (fn [sites]
+            (for [site sites]
+              (dissoc site :id :date-updated)))))
+
+
+#_
+{:sites [{:name "Site1" :date-updated "2019-11-12" :id 42}
+         {:name "Site2" :date-updated "2019-11-10" :id 99}]}
+
+
+#_
+(require '[spy.core :as spy]
+         '[spy.assert :as assert])
+
+
+(require '[spy.assert :as assert])
+
+
+#_(do
+
+    (require '[spy.core :as spy])
+
+    (def spy+ (spy/spy +))
+
+    (map spy+ [1 2 3] [4 5 6])
+
+    (spy/calls spy+)
+    [(1 4) (2 5) (3 6)]
+
+    (spy/responses spy+)
+    [5 7 9])
+
+
+#_(do
+
+    (deftest test-config-error-die-fn-called
+      (let [spy-die-fn (spy/spy)]
+        (load-config {:program-name :test
+                      :spec ::broken-config
+                      :die-fn spy-die-fn})
+        (assert/called? spy-die-fn))))
