@@ -50,20 +50,26 @@
 
 
 (def routes
-  [["content/order/" :id]
-   {"/view" {:get  :page-view}
-    "/edit" {:get  :page-form
-             :post :page-save}}])
+  [["/content/order/" :id] {"/view" {:get  :page-view}
+                            "/edit" {:get  :page-form
+                                     :post :page-save}}])
 
 
 #_
-(bidi/match-route* routes "content/order/1/view" {:request-method :get})
+(def routes
+  ["/" {["content/order/" :id]
+        {"/view" {:get  :page-view}
+         "/edit" {:get  :page-form
+                  :post :page-save}}}])
 
 #_
-(bidi/match-route* routes "content/order/1/edit" {:request-method :get})
+(bidi/match-route* routes "/content/order/1/view" {:request-method :get})
 
 #_
-(bidi/match-route* routes "content/order/1/edit" {:request-method :post})
+(bidi/match-route* routes "/content/order/1/edit" {:request-method :get})
+
+#_
+(bidi/match-route* routes "/content/order/1/edit" {:request-method :post})
 
 
 (defn page-404 [request]
@@ -124,7 +130,7 @@
      :cookies cookies*
      :body (if seen?
              "Already seen."
-             "The first time you see it!") }))
+             "The first time you see it!")}))
 
 (defn page-seen [request]
   (let [{:keys [cookies]} request
@@ -136,7 +142,13 @@
      :cookies cookies*
      :body (if seen?
              "Already seen."
-             "The first time you see it!") }))
+             "The first time you see it!")}))
+
+
+(let [cookies* (assoc cookies "seen"
+                      {:value true :http-only true})]
+  ...)
+
 
 (def app (-> page-seen
              wrap-cookies))
@@ -144,8 +156,61 @@
 
 ;; Set-Cookie: seen=true
 
+;; Cookie: ring-session=ec7fe2a4-3660-4c69-bc3f-dcaf227677c4; seen=true
+
 ;; document.cookie
 ;; "ring-session=ec7fe2a4-3660-4c69-bc3f-dcaf227677c4; seen=true"
 
 ;; document.cookie
 ;; "ring-session=ec7fe2a4-3660-4c69-bc3f-dcaf227677c4"
+
+
+(defn app [request]
+  (let [{:keys [uri request-method]} request]
+    {:status 200
+     :headers {"Content-Type" "text/plain"}
+     :body (format "You requested %s %s"
+                   (-> request-method name .toUpperCase)
+                   uri)}))
+
+
+
+(defn app [request]
+  (let [{:keys [uri request-method]} request]
+    {:status 200
+     :headers {"Content-Type" "text/plain"}
+     :body (with-out-str
+             (clojure.pprint/pprint request))}))
+
+#_
+(def _s (run-jetty app {:port 8088 :join? false}))
+#_
+(.stop _s)
+
+
+(defn handler [request]
+  (let [content (-> request :body slurp)]
+    #_(process-content content)
+    {:status 200
+     :body (format "The content was %s" content)}))
+
+
+(defn page-user [request]
+  (let [user-id (-> request :params :id)
+        user (get-user-by-id user-id)
+        {:keys [fname lname]} user]
+    {:status 200
+     :body (format "User %s is %s %s"
+                   user-id fname lname)}))
+
+
+(defmethod multi-handler :page-view
+  [request]
+  (if-let [order (some-> request
+                         :route-params
+                         :id
+                         get-order-by-id)]
+    {:status 200
+     :headers {"content-type" "text/html"}
+     :body (render-order-page {:order order})}
+    response-404))

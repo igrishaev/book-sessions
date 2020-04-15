@@ -1,6 +1,15 @@
-(ns book.spec)
-
-(require '[clojure.spec.alpha :as s])
+(ns book.spec
+  (:require
+   [clojure.java.jdbc.spec :as jdbc]
+   [clojure.repl :refer [doc]]
+   [clojure.spec.test.alpha
+    :refer [instrument]]
+   [clojure.walk :as walk]
+   [clojure.string :as str]
+   [clojure.instant
+    :refer [read-instant-date]]
+   [clojure.java.io :as io]
+   [clojure.spec.alpha :as s]))
 
 (s/def ::string string?)
 
@@ -116,9 +125,6 @@
           {:address "https://clojure.org/"
            :description "Clojure Language"
            :status nil})
-
-(require '[clojure.instant
-       	   :refer [read-instant-date]])
 
 (read-instant-date "2019")
 
@@ -300,6 +306,16 @@
  :via [::sample :sample/email]
  :in [:email]}
 
+
+(s/def :account/username ::ne-string)
+#_(s/def :account/email ::email)
+(s/def :account/email (s/spec ::email))
+
+(s/def ::account
+  (s/keys :req-un [:account/username
+                   :account/email]))
+
+
 (def spec-errors
   {::ne-string "Строка не должна быть пустой"
    :email "Введите правильный почтовый адрес"
@@ -367,14 +383,12 @@
             :port 5432}
  :server {:host "127.0.0.1"}}
 
-(require '[clojure.java.io :as io])
 
 (defn get-ini-lines
   [path]
   (with-open [src (io/reader path)]
     (doall (line-seq src))))
 
-(require '[clojure.string :as str])
 
 (defn comment?
   [line]
@@ -469,8 +483,6 @@
   (s/keys :req-un [::database
                    ::server]))
 
-(require '[clojure.walk :as walk])
-
 (s/def ::->ini-config
   (s/and
    (s/conformer clear-ini-lines)
@@ -523,9 +535,6 @@
   :args (s/cat :start inst? :end inst?)
   :ret int?)
 
-(require '[clojure.spec.test.alpha
-           :refer [instrument]])
-
 (instrument `date-range-sec)
 
 "Execution error - invalid arguments to date-range-sec"
@@ -547,8 +556,6 @@
    (date-range-sec-orig
     #inst "2019" #inst "2020")))
 
-(require '[clojure.repl :refer [doc]])
-
 (def config
   {:db {:dbtype "mysql"
         :host "127.0.0.1"
@@ -558,7 +565,6 @@
         :password "********"
         :useSSL true}})
 
-(require '[clojure.java.jdbc.spec :as jdbc])
 
 (s/def ::db ::jdbc/db-spec)
 
