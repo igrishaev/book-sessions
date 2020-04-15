@@ -1,10 +1,12 @@
 (ns book.web
   (:require
+   [clojure.walk :refer [keywordize-keys stringify-keys]]
+   [ring.middleware.session :refer [wrap-session]]
    [bidi.bidi :as bidi]
    [clojure.java.jdbc :as jdbc]
    [ring.adapter.jetty :refer [run-jetty]]
    [ring.middleware.cookies :refer [wrap-cookies]]
-   [compojure.core :refer [GET defroutes]]))
+   [compojure.core :refer [GET defroutes wrap-routes context]]))
 
 
 (def routes
@@ -55,7 +57,6 @@
                                      :post :page-save}}])
 
 
-#_
 (def routes
   ["/" {["content/order/" :id]
         {"/view" {:get  :page-view}
@@ -145,6 +146,7 @@
              "The first time you see it!")}))
 
 
+#_
 (let [cookies* (assoc cookies "seen"
                       {:value true :http-only true})]
   ...)
@@ -195,6 +197,9 @@
      :body (format "The content was %s" content)}))
 
 
+(def get-user-by-id)
+
+
 (defn page-user [request]
   (let [user-id (-> request :params :id)
         user (get-user-by-id user-id)
@@ -203,6 +208,8 @@
      :body (format "User %s is %s %s"
                    user-id fname lname)}))
 
+
+(def response-404)
 
 (defmethod multi-handler :page-view
   [request]
@@ -214,3 +221,52 @@
      :headers {"content-type" "text/html"}
      :body (render-order-page {:order order})}
     response-404))
+
+
+(defn wrap-headers-kw [handler]
+  (fn [request]
+    (-> request
+        (update :headers keywordize-keys)
+        handler
+        (update :headers stringify-keys))))
+
+
+(defn app* [request]
+  (let [{:keys [headers]} request
+        {:keys [host]} headers]
+    {:status 200
+     :headers {:content-type "text/html"}
+     :body (format "<h1>Host header: %s</h1>" host)}))
+
+
+(def app (wrap-headers-kw app*))
+
+
+(defn account-cart [_]
+  {:status 200 :body "cart"})
+
+(defn account-orders [_]
+  {:status 200 :body "orders"})
+
+(defn account-profile [_]
+  {:status 200 :body "profile"})
+
+
+(defn wrap-auth-user-only [handler]
+  (fn [request]
+    (if (:user request)
+      (handler request)
+      {:status 403
+       :headers {"content-type" "text/plain"}
+       :body "Please sign in to access this page."})))
+
+(defroutes app-account
+  (GET "/cart"    _ "cart")
+  (GET "/orders"  _ "orders")
+  (GET "/profile" _ "profile"))
+
+(defroutes app
+  (GET "/"     _ "index")
+  (GET "/help" _ "help")
+  (context "/account" []
+    (wrap-routes app-account wrap-auth-user-only)))
