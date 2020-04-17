@@ -1,7 +1,13 @@
 (ns book.web
   (:require
+   [ring.middleware.content-type
+    :refer [wrap-content-type]]
+   [clojure.java.io :as io]
+   [ring.middleware.file :refer [wrap-file]]
+   [ring.middleware.resource :refer [wrap-resource]]
    [clojure.walk :refer [keywordize-keys stringify-keys]]
    [ring.middleware.session :refer [wrap-session]]
+   [clj-http.client :as client]
    [bidi.bidi :as bidi]
    [clojure.java.jdbc :as jdbc]
    [ring.adapter.jetty :refer [run-jetty]]
@@ -270,3 +276,87 @@
   (GET "/help" _ "help")
   (context "/account" []
     (wrap-routes app-account wrap-auth-user-only)))
+
+
+(defn handler [request]
+  {:status 200 :body "Response from Clojure"})
+
+
+(def app
+  (wrap-resource handler "public"))
+
+
+#_
+(require '[clj-http.client :as client])
+
+#_
+(-> response
+    (select-keys [:status :body :headers])
+    (update :headers select-keys ["Content-Type"]))
+
+#_
+(defn app-proxy [request]
+  (let [response (client/get "https://ya.ru" {:stream? true})
+        {:keys [status headers body]} response
+        headers* (select-keys headers ["Content-Type"])]
+    {:status 200
+     :headers headers*
+     :body body}))
+
+(defn app-proxy [request]
+  (-> "https://ya.ru"
+      (client/get {:stream? true})
+      (select-keys [:status :body :headers])
+      (update :headers select-keys ["Content-Type"])))
+
+
+(defn page-terminals [request]
+  {:status 200
+   :headers {"content-type" "application/json"}
+   :body (slurp "terminals.json")})
+
+(defn page-terminals [request]
+  {:status 200
+   ;; :body (io/file "terminals.json")
+   :body (new java.io.File "terminals.json")})
+
+
+(require '[clojure.java.io :as io])
+
+(def app (wrap-content-type page-terminals {:mime-types {"json" "application/json"}}))
+
+(def app (wrap-content-type page-terminals))
+
+(def page-departments)
+
+(defroutes app
+  (GET "/terminals.json"   request (page-terminals request))
+  (GET "/departments.json" request (page-departments request)))
+
+#_
+(def app (-> app-naked
+             (wrap-file "/var/www/public")))
+
+
+#_
+(def app (-> app-naked
+             (wrap-resource "public")))
+
+
+#_
+(require '[ring.middleware.content-type :refer [wrap-content-type]])
+
+(def app
+  (-> app-naked
+      (wrap-content-type
+       {:mime-types {"json" "application/json"}})))
+
+
+(def app (wrap-content-type page-terminals {:mime-types {"json" "application/json"}}))
+
+
+
+(defn app [request]
+  {:status 200
+   :headers {"content-type" "image/png"}
+   :body (slurp "/path/to/image.png")})
