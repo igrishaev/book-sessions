@@ -1,5 +1,6 @@
 (ns book.spec
   (:require
+   [clojure.tools.logging :as log]
    [clojure.java.jdbc.spec :as jdbc]
    [clojure.repl :refer [doc]]
    [clojure.spec.test.alpha
@@ -278,6 +279,8 @@
 (s/def ::sample
   (s/keys :req-un [:sample/username
                    :sample/email]))
+
+
 
 (def spec-errors
   {::ne-string "Строка не должна быть пустой"
@@ -597,6 +600,13 @@ Detected 1 error
   (s/cat :tag (partial = 'defn)
          :name symbol?
          :body :defn/body))
+
+
+(s/def ::defn
+  (s/cat :tag #{'defn}
+         :name symbol?
+         :body :defn/body))
+
 #_
 (s/def ::defn
   (s/cat :tag (partial = 'defn)
@@ -779,3 +789,122 @@ Detected 1 error
    :user     "user"
    :password "********"
    :useSSL   true}]}
+
+;; (s/def :book/description string?)
+;; (s/def ::book (s/keys :req-un [:book/description]))
+
+;; (s/def :movie/description string?)
+;; (s/def ::movie (s/keys :req-un [:movie/description]))
+
+;; (s/explain-data ::book {:description nil})
+;; #:clojure.spec.alpha{:problems ({:path [:description], :pred clojure.core/string?, :val nil, :via [:book.spec/book :book/description], :in [:description]}), :spec :book.spec/book, :value {:description nil}}
+
+;; (s/explain-data ::movie {:description nil})
+;; #:clojure.spec.alpha{:problems ({:path [:description], :pred clojure.core/string?, :val nil, :via [:book.spec/movie :movie/description], :in [:description]}), :spec :book.spec/movie, :value {:description nil}}
+
+
+(s/def ::ne-string
+  (s/and string? not-empty))
+
+
+(s/def ::notification #{"daily"})
+
+(s/def ::notification (partial = "daily"))
+
+
+;; (s/def :book/description (s/and string? not-empty))
+;; (s/def ::book (s/keys :req-un [:book/description]))
+
+;; (s/def :movie/description (s/and string? not-empty))
+;; (s/def ::movie (s/keys :req-un [:movie/description]))
+
+(s/def :book/description ::ne-string)
+(s/def ::book (s/keys :req-un [:book/description]))
+
+(s/def :movie/description ::ne-string)
+(s/def ::movie (s/keys :req-un [:movie/description]))
+
+(s/def :book/description (s/spec ::ne-string))
+
+(def ne-string (every-pred string? not-empty))
+(s/def :book/description ne-string)
+
+
+
+#_
+(s/explain-data ::book {:description ""})
+#_
+(s/explain-data ::movie {:description ""})
+
+(s/def ::string string?)
+
+(s/def ::not-empty not-empty)
+
+(s/def ::ne-string (s/and ::string ::not-empty))
+
+
+
+(defn get-message
+  [problem]
+  (let [{:keys [via]} problem]
+    (->> via
+         reverse
+         (keep spec-errors)
+         first)))
+
+
+(def spec-errors
+  {::email "Введите правильный почтовый адрес"})
+
+(get-message {:via [::email ::ne-string]})
+"Введите правильный почтовый адрес"
+
+
+(def spec-errors
+  {:book/description "Введите описание книги"
+   :movie/description "Введите описание фильма"})
+
+
+(def spec-errors
+  {:description "Неверное описание"
+   :book/description "Введите описание книги"})
+
+
+#_
+(def spec-errors
+  {::ne-string "Строка не должна быть пустой"
+   :email "Введите правильный почтовый адрес"
+   :account/email "Особое сообщение для адреса отправителя"})
+
+
+(s/def :post/title ::ne-string)
+(s/def :post/tags (s/coll-of ::ne-string))
+(s/def ::post (s/keys :req-un [:post/title]
+                      :opt-un [:post/tags]))
+
+(s/explain-data ::post {:title "test"})
+
+(defn get-common-message [problem]
+  (let [{:keys [in val]} problem
+        field (->> in
+                   reverse
+                   (filter keyword?)
+                   first)]
+    (format "The field '%s' has got an incorrect value '%s'."
+            (name field) val)))
+
+
+(get-common-message {:val "" :in [:tags 1]})
+"The field 'tags' has got an incorrect value ''."
+
+
+(defn get-better-message [problem]
+  (let [{:keys [via]} problem
+        spec (peek via)]
+    (or (get spec-errors spec)
+        (do (log/warnf "Missing message for spec %s" spec)
+            default-message))))
+
+
+(get-better-message {:via [:unknown/spec]})
+"Исправьте ошибки в поле"
