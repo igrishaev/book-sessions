@@ -908,3 +908,16 @@ Detected 1 error
 
 (get-better-message {:via [:unknown/spec]})
 "Исправьте ошибки в поле"
+
+
+(require '[clojure.spec.alpha :as s])
+
+(s/check-asserts true)
+
+(s/def ::ne-string (s/and string? not-empty))
+
+(s/assert ::ne-string "test")
+
+(s/assert ::ne-string "")
+
+(s/check-asserts false)

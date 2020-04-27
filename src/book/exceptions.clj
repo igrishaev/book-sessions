@@ -807,3 +807,38 @@ clojure.lang.ExceptionInfo
           (log/error e "HTTP error")
           {:status 500
            :body "Internal error."})))))
+
+
+(require '[clj-http.client :as client])
+
+(defn authenticate-user [user-id]
+  (let [url (str "http://auth.company.com/" user-id)
+        {:keys [status body]} (client/get url)]
+    (if (= status 200)
+      body
+      (throw (ex-info "Authentication error"
+                      {:http-url url
+                       :http-status status
+                       :http-body body})))))
+
+(require '[raven.client :as r])
+
+
+(defn wrap-exception
+  [handler]
+  (fn [request]
+    (try
+      (handler request)
+      (catch Exception e
+        (let [event (-> nil
+                        (r/add-exception! e)
+                        (r/add-ring-request! request)
+                        (r/add-extra! {:something "else"}))]
+          (try
+            @(r/capture! DSN event)
+            (catch Exception e-sentry
+              (log/errorf e-sentry "Sentry error: %s" DSN)
+              (log/error e "Request failed"))
+            (finally
+              {:status 500
+               :body "Internal error, please try later"})))))))
