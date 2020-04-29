@@ -842,3 +842,13 @@ clojure.lang.ExceptionInfo
             (finally
               {:status 500
                :body "Internal error, please try later"})))))))
+
+
+(defn request->locale [request]
+  (let [lang (get-in request [:params "lang"])]
+    (keyword (get #{"en" "ru"} lang "en"))))
+
+
+#_
+(exit 1 "Malformed config, file: %s, error:"
+      filepath (ex-message e))

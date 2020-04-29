@@ -910,14 +910,26 @@ Detected 1 error
 "Исправьте ошибки в поле"
 
 
-(require '[clojure.spec.alpha :as s])
+;; (require '[clojure.spec.alpha :as s])
 
-(s/check-asserts true)
+;; (s/check-asserts true)
 
-(s/def ::ne-string (s/and string? not-empty))
+;; (s/def ::ne-string (s/and string? not-empty))
 
-(s/assert ::ne-string "test")
+;; (s/assert ::ne-string "test")
 
-(s/assert ::ne-string "")
+;; (s/assert ::ne-string "")
 
-(s/check-asserts false)
+;; (s/check-asserts false)
+
+
+(defn spec->keys
+  [spec-keys]
+  (let [args (s/form spec-keys)
+        type->keys (apply hash-map (rest args))
+        {:keys [req opt req-un opt-un]} type->keys
+        ->unqualify (comp keyword name)]
+    (concat req
+            opt
+            (map ->unqualify opt-un)
+            (map ->unqualify req-un))))
