@@ -933,3 +933,27 @@ Detected 1 error
             opt
             (map ->unqualify opt-un)
             (map ->unqualify req-un))))
+
+
+(s/def ::->env
+  (s/and
+   string?
+   (s/conformer
+    (fn [varname]
+      (or (System/getenv varname)
+          ::s/invalid)))))
+
+
+(s/def ::db-password
+  (s/and ::->env
+         (s/conformer str/trim)
+         not-empty))
+
+
+(edn/read-string {:readers {'env tag-env}}
+                 "{:db-password #env DB_PASS}")
+
+
+{:phrases ["Welcome!"
+           "See you soon!"
+           {:Warning "wrong email address."}]}

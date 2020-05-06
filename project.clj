@@ -7,6 +7,13 @@
   :license {:name "Eclipse Public License"
             :url "http://www.eclipse.org/legal/epl-v10.html"}
 
+  :plugins [[test2junit "1.1.2"]]
+  :test2junit-output-dir "target/test2junit"
+
+  ;; :test2junit-output-dir
+  ;; (or (System/getenv "CI_ARTEFACTS")
+  ;;     "/some/default/path")
+
   :test-selectors
   {:db-experimental
    (fn [test-meta]
