@@ -759,3 +759,56 @@ Invalid reference state
 (def ^:dynaimc *data* nil)
 
 (set! *data* {:user 1})
+
+
+(-> [1 2 3]
+    (transient)
+    (conj! :a)
+    (conj! :b)
+    (pop!)
+    (persistent!))
+
+;; [1 2 3 :a]
+
+
+(-> {:a 1}
+    (transient)
+    (assoc! :b 2)
+    (assoc! :c 3)
+    (dissoc! :b)
+    (persistent!))
+
+;; {:a 1 :c 3}
+
+
+(let [result* (transient [])
+      push! (fn [item]
+              (conj! result* item))]
+
+  (when-let [a ...]
+    (when-let [b ...]
+      (when (> a b)
+        (push! (- a b)))))
+
+  ;; ... more of when/push! blocks
+
+  (persistent! result*))
+
+(defn fast-merge [map1 map2]
+  (let [map-tr (transient map1)]
+    (doseq [[k v] map2]
+      (assoc! map-tr k v))
+    (persistent! map-tr)))
+
+#_
+(fast-merge
+ {:a 1 :b 2 :c 3 :d 4 :e 5 :f 6 :g 7 :h 8}
+ {:extra 9})
+
+(defn fast-merge [map1 map2]
+  (persistent!
+   (reduce-kv
+    (fn [map-tr k v]
+      (assoc! map-tr k v))
+    (transient map1)
+    map2)))
