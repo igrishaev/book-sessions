@@ -1,4 +1,18 @@
-(ns book.exceptions)
+(ns book.exceptions
+  (:require
+   [raven.client :as r]
+   [clojure.spec.alpha :as s]
+   [clj-http.client :as client]
+   [clojure.tools.logging :as log]
+   [cheshire.core]
+   [ring.middleware.http-response
+    :refer [wrap-http-response]]
+   [slingshot.slingshot :refer [try+ throw+]]
+   [sentry-clj.core :as sentry]
+   [ring.util.http-response
+    :refer [not-found!
+            bad-request!
+            enhance-your-calm!]]))
 
 "
 
@@ -134,7 +148,6 @@ Value error, a: 1, b: null
 (let [[a b c] nil]
   [a b c])
 
-(require '[clojure.spec.alpha :as s])
 
 (s/def ::data (s/coll-of int?))
 
@@ -142,7 +155,6 @@ Value error, a: 1, b: null
 (when-let [explain (s/explain-data ::data [1 2 3])]
   (throw (ex-info "Validation failed" {:explain explain})))
 
-(require '[clj-http.client :as client])
 
 (try+
  (client/get "http://example.com/test")
@@ -299,7 +311,6 @@ Divide by zero
                 {:user-id user-is}
                 e)))))
 
-(require '[clojure.tools.logging :as log])
 
 (def e
   (ex-info
@@ -311,7 +322,6 @@ Divide by zero
                      {:method "POST"
                       :url "http://api.site.com"}))))
 
-(require 'cheshire.core)
 (cheshire.core/generate-string (:via (Throwable->map e)))
 
 
@@ -352,10 +362,6 @@ Divide by zero
     (bad-request "Wrong input data")))
 
 
-(require '[ring.util.http-response
-           :refer [not-found!
-                   bad-request!
-                   enhance-your-calm!]])
 
 
 
@@ -375,8 +381,6 @@ Divide by zero
    :body (get-data-from-db)})
 
 
-(require '[ring.middleware.http-response
-           :refer [wrap-http-response]])
 
 
 (def app
@@ -522,7 +526,6 @@ clojure.lang.ExceptionInfo
 "monads?"
 
 
-(require '[slingshot.slingshot :refer [try+ throw+]])
 
 
 #_
@@ -643,7 +646,6 @@ clojure.lang.ExceptionInfo
            ;; Cannot access your billing information
 
 
-(require '[sentry-clj.core :as sentry])
 
 
 
@@ -809,7 +811,6 @@ clojure.lang.ExceptionInfo
            :body "Internal error."})))))
 
 
-(require '[clj-http.client :as client])
 
 (defn authenticate-user [user-id]
   (let [url (str "http://auth.company.com/" user-id)
@@ -821,7 +822,7 @@ clojure.lang.ExceptionInfo
                        :http-status status
                        :http-body body})))))
 
-(require '[raven.client :as r])
+
 
 
 (defn wrap-exception
@@ -852,3 +853,42 @@ clojure.lang.ExceptionInfo
 #_
 (exit 1 "Malformed config, file: %s, error:"
       filepath (ex-message e))
+
+(def DSN "......")
+
+(defn report-exception [request e]
+  (let [event (-> nil
+                  (r/add-exception! e)
+                  (r/add-ring-request! request)
+                  (r/add-extra! {:something "else"}))]
+    (try
+      @(r/capture! DSN event)
+      (catch Exception e-sentry
+        (log/errorf e-sentry "Sentry error: %s" DSN)
+        (log/error e "Request failed")))))
+
+
+(defn wrap-exception
+  [handler]
+  (fn [request]
+    (try
+      (handler request)
+      (catch Exception e
+        (report-exception request e)
+        {:status 500
+         :body "Internal error, please try later"}))))
+
+(try (/ 0 0)
+     (catch Exception e
+       (println "catch")
+       :result-catch)
+     (finally
+       (println "finally")
+       :result-finally))
+
+(try
+  (do-something)
+  (catch Exception e
+    (log/error e "some error"))
+  (finally
+    {:status 200}))

@@ -24,6 +24,7 @@
                  ;; for web
                  [bidi "2.1.5"]
                  [compojure "1.6.1"]
+                 [metosin/ring-http-response "0.9.1"]
 
                  [ring/ring-json "0.5.0"]
                  [ring/ring-core "1.7.1"]
@@ -38,9 +39,12 @@
                  [clj-http "3.9.1"]
                  [cheshire "5.8.1"]
 
+                 ;; logging
                  [org.clojure/tools.logging "0.4.1"]
                  [ch.qos.logback/logback-classic "1.2.3"]
 
+                 ;; sentry
+                 [exoscale/raven "0.4.15"]
                  [io.sentry/sentry-clj "0.7.2"]
 
                  ;; config
