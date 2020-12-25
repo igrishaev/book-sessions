@@ -40,6 +40,25 @@
   )
 
 
+
+(def data3
+  '[
+   {:command "switch" :value ...}
+     {:command "case" :value 1}
+       {:command "print" :value "one"}
+     {:command "end"}
+       {:command "case" :value 2}
+     {:command "print" :value "two"}
+       {:command "end"}
+   {:command "end"}]
+  )
+
+
+(s/def ::flow
+  (s/+ (s/alt :if ::flow-if
+              :cmd ::command)))
+
+
 (s/def ::flow
   (s/+
    (s/alt :if ::flow-if
@@ -82,7 +101,7 @@
 ;; -------
 
 (defmulti do-flow
-  (fn [[tag command]]
+  (fn [[tag flow]]
     tag))
 
 
@@ -93,8 +112,8 @@
 
 ;; ------
 
-(defn run-flow [flow]
-  (doseq [flow flow]
+(defn run-flow [flow-nodes]
+  (doseq [flow flow-nodes]
     (do-flow flow)))
 
 
@@ -120,23 +139,61 @@
 #_
 (defmethod do-flow :if
   [[_ {:keys [this flow else]}]]
-  (if 1
+  (if ...
     (run-flow flow)
     (when else
       (let [{:keys [this flow]} else]
-        (run-flow)))))
+        (run-flow flow)))))
+
+
+(defn test-condition [condition]
+  (case condition
+    "TRUE" true
+    "FALSE" false
+    (throw
+     (new Exception
+          (format "Wrong condition: %s" condition)))))
 
 
 (defmethod do-flow :if
   [[_ flow-if]]
   (let [{:keys [this flow else]} flow-if
         {:keys [condition]} this]
-    (if (= condition "TRUE")
+    (if (test-condition condition)
       (run-flow flow)
       (when else
         (let [{:keys [this flow]} else]
           (run-flow flow))))))
 
 
+(defmethod do-flow :for
+  [[_ flow-for]]
+  (let [{:keys [this flow]} flow-for]
+    (dotimes [_ 3]
+      (run-flow flow))))
+
+
 #_
 (s/conform ::commands data)
+
+
+#_
+(defmethod do-flow :if
+  [[_ flow-if]]
+  (let [{:keys [this flow else]} flow-if
+        {:keys [condition]} this]
+    (if (test-condition condition)
+      ...)))
+
+
+
+(def data-test
+  [{:command "print" :text "begin"}
+   {:command "if" :condition "TRUE"}
+     {:command "for"}
+       {:command "print" :text "this is true"}
+     {:command "end"}
+   {:command "else"}
+     {:command "print" :text "this is false"}
+   {:command "end"}
+   {:command "print" :text "end"}])
