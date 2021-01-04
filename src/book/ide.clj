@@ -41,18 +41,83 @@
 
 
 
-(def data3
-  '[
-   {:command "switch" :value ...}
+(def data-switch
+  [{:command "switch" :value "..."}
      {:command "case" :value 1}
-       {:command "print" :value "one"}
+       {:command "print" :text "one"}
      {:command "end"}
        {:command "case" :value 2}
-     {:command "print" :value "two"}
+     {:command "print" :text "two"}
        {:command "end"}
-   {:command "end"}]
-  )
+   {:command "end"}])
 
+
+
+(def data-if
+  [{:command "if" :condition "..."}
+     {:command "print" :text "this is true"}
+   {:command "else"}
+     {:command "print" :text "this is false"}
+   {:command "end"}])
+
+
+(def data-nested
+  [{:command "if" :condition "..."}
+     {:command "if" :condition "..."}
+       {:command "print" :text "hello"}
+     {:command "end"}
+   {:command "end"}])
+
+
+(def data-broken1
+  [{:command "if" :condition "..."}
+   {:command "print" :text "hello"}])
+
+(def data-broken2
+  [{:command "if" :condition "..."}
+   {:command "print" :text "hello"}
+   {:command "end"}
+   {:command "end"}])
+
+(def data-broken3
+  [{:command "if" :condition "..."}
+   {:command "end"}])
+
+
+(def data-mixed
+  [{:command "for"}
+     {:command "if" :condition "..."}
+       {:command "print" :text "hello"}
+     {:command "end"}
+   {:command "end"}])
+
+#_
+[{:command "if" :condition ...}
+   {:command "for"}
+     ...
+   {:command "end"}
+ {:command "end"}]
+
+#_
+[{:command "for"}
+   {:command "if" :condition ...}
+      ...
+   {:command "else"}
+      ...
+   {:command "end"}
+ {:command "end"}]
+
+#_
+{:tag {...}
+ :condition ...
+ :branch-true [{...} {...}]
+ :branch-false [{...} {...}]}
+
+#_
+[:if {:tag {...}
+      :condition ...
+      :branch-true [{...} {...}]
+      :branch-false [{...} {...}]}]
 
 (s/def ::flow
   (s/+ (s/alt :if ::flow-if
@@ -135,6 +200,15 @@
   [{:keys [text]}]
   (println text))
 
+#_
+(defmethod do-cmd :open
+  [command]
+  ...)
+
+#_
+(doseq [command commands]
+  (do-cmd command))
+
 
 #_
 (defmethod do-flow :if
@@ -197,3 +271,16 @@
      {:command "print" :text "this is false"}
    {:command "end"}
    {:command "print" :text "end"}])
+
+
+(def tag-print? (tag= "print"))
+
+(tag-print? {:command "print"})
+;; true
+
+
+
+(defn test-condition [condition]
+  (case condition
+    "TRUE" true
+    "FALSE" false))

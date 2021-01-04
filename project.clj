@@ -31,6 +31,8 @@
                  [ring/ring-jetty-adapter "1.7.1"]
 
                  ;; for spec chapter
+                 [spec-dict "0.2.1"]
+                 [metosin/spec-tools "0.10.4"]
                  [org.clojure/java.jdbc "0.7.8"]
                  [migratus "1.2.7"]
 
