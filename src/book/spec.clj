@@ -9,8 +9,10 @@
    [clojure.string :as str]
    [clojure.instant
     :refer [read-instant-date]]
+   [spec-dict :refer [dict dict*]]
    [clojure.java.io :as io]
-   [clojure.spec.alpha :as s]))
+   [clojure.spec.alpha :as s]
+   [spec-tools.json-schema :as json-schema]))
 
 (s/def ::string string?)
 
@@ -884,12 +886,15 @@ Detected 1 error
 
 (s/explain-data ::post {:title "test"})
 
+(defn last-kw [coll]
+  (->> coll
+       reverse
+       (filter keyword?)
+       first))
+
 (defn get-common-message [problem]
   (let [{:keys [in val]} problem
-        field (->> in
-                   reverse
-                   (filter keyword?)
-                   first)]
+        field (last-kw in)]
     (format "The field '%s' has got an incorrect value '%s'."
             (name field) val)))
 
@@ -950,6 +955,7 @@ Detected 1 error
          not-empty))
 
 
+#_
 (edn/read-string {:readers {'env tag-env}}
                  "{:db-password #env DB_PASS}")
 
@@ -957,3 +963,105 @@ Detected 1 error
 {:phrases ["Welcome!"
            "See you soon!"
            {:Warning "wrong email address."}]}
+
+
+;;  :count - specifies coll has exactly this count (default nil)
+;;  :min-count, :max-count - coll has count (<= min-count count max-count) (defaults nil)
+
+(s/def ::url-list (s/coll-of ::url :min-count 1))
+
+#_
+(s/valid? ::url-list [])
+;; false
+
+#_
+(s/valid? ::url-list ["http://test.com"])
+;; true
+
+(s/def ::ts->date (s/conformer (fn [^long ts]
+                                 (new java.util.Date (* ts 1000)))))
+
+(s/conform ::ts->date 1609230152)
+;; #inst "2020-12-29T08:22:32.000-00:00"
+
+
+(s/def ::->int
+  (s/and
+    ::ne-string
+    (with-conformer [val]
+      (Integer/parseInt val))))
+
+(def spec-errors
+  {:ru {::ne-string "Строка не должна быть пустой"
+        ::email "Введите правильный почтовый адрес"}
+   :en {::ne-string "The field must not be blank"
+        ::email "The email address is invalid"}})
+
+
+(def spec-errors
+  {:ru
+   {::ne-string "Строка не должна быть пустой"
+    ::email "Введите правильный почтовый адрес"}
+   :en
+   {::ne-string "The field must not be blank"
+    ::email "The email address is invalid"}})
+
+
+(def form
+  {:name {:title "Your name"
+          :widget :textfield
+          :value "Ivan"
+          :error nil}
+   :email {:title "Email address"
+           :widget :textfield
+           :value "test@"
+           :error "Email is incorrect"}})
+
+
+(def values
+  {:name "Ivan"
+   :email "test@"})
+
+
+(s/conform ::user [])
+
+"
+1,test@test.com,active
+2,ivan@test.com,pending
+3,user@test.com,active
+"
+
+(require '[spec-tools.json-schema :as json-schema])
+
+(s/def :user/name ::ne-string)
+(s/def :user/age pos-int?)
+
+(s/def :user/user
+  (s/keys :req-un [:user/name :user/age]))
+
+#_
+(json-schema/transform :user/user)
+
+#_
+{:type "object"
+ :properties
+ {"name" {:type "string"}
+  "age" {:type "integer"
+         :format "int64"
+         :minimum 1}}
+ :required ["name" "age"]
+ :title "user/user"}
+
+
+#_
+(require '[spec-dict :refer [dict dict*]])
+
+
+(s/def ::user-strict
+  (dict* {:name string? :age pos-int?}))
+
+(s/valid? ::user-strict {:name "test" :age 30})
+;; true
+
+(s/valid? ::user-strict {:name "test" :age 30 :extra 1})
+;; false
