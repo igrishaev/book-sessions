@@ -3,6 +3,10 @@
    [ring.middleware.content-type
     :refer [wrap-content-type]]
    [clojure.java.io :as io]
+   [ring.middleware.params :refer [wrap-params]]
+   [ring.middleware.keyword-params :refer [wrap-keyword-params]]
+   [ring.middleware.json :refer [wrap-json-response
+                                 wrap-json-body]]
    [ring.middleware.file :refer [wrap-file]]
    [ring.middleware.resource :refer [wrap-resource]]
    [clojure.walk :refer [keywordize-keys stringify-keys]]
@@ -360,3 +364,23 @@
   {:status 200
    :headers {"content-type" "image/png"}
    :body (slurp "/path/to/image.png")})
+
+
+
+#_
+(defn app [req]
+  (clojure.pprint/pprint req)
+  {:status 200
+   :body {:foo 42}})
+
+
+#_
+(def app*
+  (-> app
+      wrap-keyword-params
+      wrap-params
+      wrap-json-response
+      wrap-json-body))
+
+#_
+(def server (run-jetty app* {:port 8088 :join? false}))

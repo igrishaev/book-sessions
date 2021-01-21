@@ -159,8 +159,8 @@
       (not (contains? flow-tags command)))))
 
 
-(defn parse-flow [data]
-  (s/conform ::flow data))
+(defn parse-flow [commands]
+  (s/conform ::flow commands))
 
 
 ;; -------
@@ -177,15 +177,15 @@
 
 ;; ------
 
-(defn run-flow [flow-nodes]
-  (doseq [flow flow-nodes]
+(defn run-flow [flow-vect]
+  (doseq [flow flow-vect]
     (do-flow flow)))
 
 
-(defn run-data [data]
-  (let [result (parse-flow data)]
+(defn run-commands [commands]
+  (let [result (parse-flow commands)]
     (if (s/invalid? result)
-      (println "Wrong data!")
+      (throw (new Exception "Wrong commands!"))
       (run-flow result))))
 
 
@@ -220,7 +220,7 @@
         (run-flow flow)))))
 
 
-(defn test-condition [condition]
+(defn test-if [{:keys [condition]}]
   (case condition
     "TRUE" true
     "FALSE" false
@@ -231,12 +231,11 @@
 
 (defmethod do-flow :if
   [[_ flow-if]]
-  (let [{:keys [this flow else]} flow-if
-        {:keys [condition]} this]
-    (if (test-condition condition)
+  (let [{:keys [this flow else]} flow-if]
+    (if (test-if this)
       (run-flow flow)
       (when else
-        (let [{:keys [this flow]} else]
+        (let [{:keys [flow]} else]
           (run-flow flow))))))
 
 

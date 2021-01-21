@@ -1065,3 +1065,8 @@ Detected 1 error
 
 (s/valid? ::user-strict {:name "test" :age 30 :extra 1})
 ;; false
+
+
+(s/def ::user
+  {:name string?
+   :age pos-int?})

@@ -96,6 +96,14 @@
   (+ num delta))
 
 
+(defn +slow
+  [a b timeout]
+  (println (format "Current: %s, timeout: %s" a timeout))
+  (Thread/sleep timeout)
+  (+ a b))
+
+
+
 #_
 (swap! sample update :number +slow 1 2000)
 

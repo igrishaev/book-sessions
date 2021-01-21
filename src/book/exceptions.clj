@@ -784,6 +784,11 @@ clojure.lang.ExceptionInfo
 (with-file-writer [out "test.txt"]
   (.write out "Hello from macros"))
 
+#_
+(with-file-writer [out "test.txt"]
+  (.write out "Hello from macros")
+  (/ 0 0))
+
 
 (comment
 
