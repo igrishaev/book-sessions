@@ -1,4 +1,7 @@
-(ns book.mutability)
+(ns book.mutability
+  (:require
+   [clj-http.client :as client]
+   [clojure.tools.logging :as log]))
 
 
 (let [result (atom [])
@@ -820,3 +823,125 @@ Invalid reference state
       (assoc! map-tr k v))
     (transient map1)
     map2)))
+
+
+(defn ex-chain
+  [^Throwable e]
+  (take-while some? (iterate ex-cause e)))
+
+
+(defn ex-print
+  [^Throwable e]
+  (let [indent "  "]
+    (doseq [e (ex-chain e)]
+      (println (-> e class .getCanonicalName))
+      (print indent)
+      (println (ex-message e))
+      (when-let [data (ex-data e)]
+        (print indent)
+        (clojure.pprint/pprint data)))))
+
+
+(defn make-better-logger
+  [log*] ;; origin function
+  (fn [logger level throwable message]
+    (if throwable
+      (let [ex-out (with-out-str (ex-print throwable))
+            message* (str message \newline ex-out)]
+        (log* logger level nil message*))
+      (log* logger level throwable message))))
+
+
+(defn make-better-logger
+  [log*] ;; origin function
+  (fn [logger level throwable message]
+    (if throwable
+      (let [ex-out (with-out-str (ex-print throwable))
+            message* (str message \newline ex-out)]
+        (log* logger level nil message*))
+      (log* logger level throwable message))))
+
+
+(defn install-better-logging []
+  (alter-var-root
+   #'clojure.tools.logging/log*
+   make-better-logger))
+
+#_
+(require '[clojure.tools.logging :as log])
+
+(defn install-better-logging []
+  (alter-var-root #'log/log* make-better-logger))
+
+
+
+(defn calc-billing [data]
+  (with-local-vars
+    [a 0 b 0]
+
+    ;; find a
+    (when-let [usage ...]
+      (when-let [days ...]
+        (var-set a (* usage days))))
+
+    ;; find b
+    (when-let [vms ...]
+      (when-let [limits ...]
+        (var-set b (* limits vms))))
+
+    ;; special case
+    (when ...
+      (var-set a (* 2 @a)))
+
+    ;; result
+    (* @a @b)))
+
+#_
+(with-redefs [println (fn [& _]
+                        (print "fake print"))]
+  (println {:some "data"}))
+
+
+(defn place-info
+  [{:keys [lat lon]}]
+  (let [http-opt {:headers {:token "..."}
+                  :query-params {:lat lat :lon lat}}]
+    (-> "https://api.maps.com/search"
+        (client/get http-opt)
+        :body)))
+
+
+#_
+(place-info {:lat 51.678790
+             :lon 39.206855})
+
+#_
+{:title "Voronezh"
+ :country "Russia"
+ ...}
+
+
+
+
+#_
+(deftest test-place-quota-reached
+ (with-place-info
+   (throw ex-quota)
+   (let [request {:params {:lat 11.111
+                          :lon 22.222}}
+        {:keys [status body]}
+        (location-handler request)]
+      (is (= 200 status))
+      (Thread/sleep 100)
+      (is (nil?
+            (db/get-last-location))))))
+
+#_
+(deftest test-place-quota-reached
+  (with-place-info
+    (throw ex-quota)
+    (let [request {:params {:lat 11.111 :lon 22.222}}
+          {:keys [status body]} (location-handler request)]
+      (is (= 200 status))
+      (Thread/sleep 100)
+      (is (nil? (db/get-last-location))))))
