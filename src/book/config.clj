@@ -13,6 +13,12 @@
    :password "****"})
 
 
+(defn fake-exit
+  [_ template & args]
+  (let [message (apply format template args)]
+    (throw (new Exception ^String message))))
+
+
 ;;-------
 (defn exit
 
