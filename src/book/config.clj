@@ -476,3 +476,7 @@ COMMAND_MODE=unix2003
   :die-fn (fn [e msg]
             (log/errorf e "Config error")
             (System/exit 1))})
+
+#_
+(require '[aero.core :refer [read-config]]
+         '[clojure.java.io :as io])
