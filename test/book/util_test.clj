@@ -1165,3 +1165,39 @@ expected: 404           expected: 200
                       :spec ::broken-config
                       :die-fn spy-die-fn})
         (assert/called? spy-die-fn))))
+
+
+(defn fact [n]
+  (reduce * (range 1 (inc n))))
+
+(defn test-fact []
+  (assert (= 120 (fact 5))))
+
+
+(defn fact [n]
+  (case n
+    1 1
+    2 2
+    3 6
+    4 24
+    5 120
+    ...))
+
+
+(defn test-sign-params []
+  (let [public-key "2Ag48776s634Tsdf"
+        secret-key "fnsd809SDf2dfs3t"
+        params {:api_key public-key
+                :action :postComment
+                :post_id 217
+                :comment "This is a great article!"}
+        signature "01b03dbf1fa5a4c5"]
+    (assert (= (assoc params :signature signature)
+               (sign-params params secret-key)))))
+
+
+(require '[clojure.string :as str])
+
+(deftest ^:special test-special-case
+  (let [...]
+    (is ...)))

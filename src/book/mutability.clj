@@ -945,3 +945,50 @@ Invalid reference state
       (is (= 200 status))
       (Thread/sleep 100)
       (is (nil? (db/get-last-location))))))
+
+#_
+(require
+ '[clj-http.conn-mgr :refer
+   [make-reusable-conn-manager
+    shutdown-manager]])
+
+
+#_
+(stop [{:as this :keys [server]}]
+  (.stop server))
+;; or
+#_
+(stop [this]
+      (.stop (:server this)))
+
+#_
+(->> _state
+     vals
+     (sort-by :order)
+     (map (fn [cmp]
+            (-> cmp :var meta :name))))
+
+
+#_
+(defrecord Worker
+    ;; ...component/Lifecycle
+    IWorker
+
+    (make-task [this]
+      (future
+        (while @flag      ;; ...try/catch
+          (task-fn this)))) ;; ...sleep
+
+    (task-fn [this]
+      (db/with-db-transaction [tx db]
+        (when-let [request (first (db/query tx query))]
+          (let [fields (...))] ;; get fields
+          (db/update! tx :requests
+                      fields ["id = ?" id])))))
+
+#_
+(stop [this]
+  (log/debug "Stopping the web-server...")
+  (.stop server)
+  (log/debug "The web-server has been stopped.")
+  (assoc this :server nil))
