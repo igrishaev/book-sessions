@@ -1,5 +1,9 @@
 (ns book.config
   (:require
+
+   [clojure.data.csv :as csv]
+   [clojure.java.io :as io]
+
    [clojure.java.jdbc :as jdbc]
    [com.stuartsierra.component :as component]
    [clojure.tools.logging :as log]))
@@ -273,3 +277,185 @@
         (when (.next rs)
           (cons (zipmap keys (row-values)) (lazy-seq (thisfn)))))]
   (records))
+
+
+(jdbc/query db "select * from users" {:as-arrays? true})
+
+[[1 "Ivan" "Petrov" "test@test.com"]
+ [2 "Ivan" "Petrov" "ivan@test.com"]
+ [3 "John" "Smith" "john@test.com"]]
+
+[[:id :fname :lname :email :age]
+ [1 "Ivan" "Petrov" "test@test.com" 42]
+ [2 "Ivan" "Petrov" "ivan@test.com" 87]
+ [3 "John" "Smith" "john@test.com" 20]]
+
+
+
+
+(with-open [reader (io/reader "in-file.csv")]
+  (doall
+   (csv/read-csv reader)))
+
+(with-open [writer (io/writer "out-file.csv")]
+  (csv/write-csv writer
+                 [["abc" "def"]
+                  ["ghi" "jkl"]]))
+
+
+;; [clojure.data.csv :as csv]
+;; [clojure.java.io :as io]
+
+
+(with-open [writer (io/writer "users.csv")]
+  (->> (jdbc/query db "select * from users" {:as-arrays? true})
+       (csv/write-csv writer)))
+
+
+(jdbc/query db "select * from users"
+            {:as-arrays? true :keywordize? false})
+
+(jdbc/query db "select * from users" {:keywordize? false})
+
+({"id" 1
+  "fname" "Ivan"
+  "lname" "Petrov"
+  "email" "test@test.com"
+  "age" 42}
+ {"id" 3
+  "fname" "John"
+  "lname" "Smith"
+  "email" "john@test.com"
+  "age" 20})
+
+
+(first (jdbc/query db "select * from users" {:qualifier "user"}))
+
+{:user/id 2
+ :user/fname "Ivan"
+ :user/lname "Petrov"
+ :user/email "ivan@test.com"
+ :user/age 87}
+
+;; create table users (id serial primary key, fname text, lname text, email text, age integer);
+;; create table profiles (id serial primary key, user_id integer not null references users (id), avatar text);
+
+
+
+select
+u.id as user_id,
+u.fname as user_fname,
+u.lname as user_lname,
+p.avatar as profile_avatar
+from users u
+join profiles p on p.user_id = u.id;
+
+
+
+select
+u.id as "user/id",
+u.fname as "user/fname",
+u.lname as "user/lname",
+p.avatar as "profile/avatar"
+from users u
+join profiles p on p.user_id = u.id
+
+(jdbc/query db "
+select
+u.id as \"user/id\",
+u.fname as \"user/fname\",
+...
+")
+
+
+({:user/id 1
+  :user/fname "Ivan"
+  :user/lname "Petrov"
+  :profile/avatar "kitten.jpg"})
+
+
+select
+u.id as "user/id",
+u.fname as "user/fname",
+u.lname as "user/lname",
+p.avatar as "profile/avatar"
+from users u
+join profiles p on p.user_id = u.id;
+
+ user/id | user/fname | user/lname | profile/avatar
+---------+------------+------------+----------------
+       1 | Ivan       | Petrov     | kitten.jpg
+
+
+
+
+(jdbc/query db "select * from users"
+            {:as-arrays? true
+             :keywordize? false
+             :result-set-fn
+             (fn [rows]
+               (with-open [writer (io/writer "users.csv")]
+                 (csv/write-csv writer rows)))})
+
+
+(jdbc/db-query-with-resultset
+ db "select * from users"
+ (fn [rs]
+   (while (.next rs)
+     (let [id (.getInt rs "id")
+           fname (.getString rs "fname")
+           lname (.getString rs "lname")]
+       (println id fname lname)))))
+
+
+
+
+(def db {:auto-commit? true
+         :dbtype "postgresql"
+         :dbname "test"
+         :host "127.0.0.1"
+         :user "book"
+         :password "book"})
+
+
+(def db {:auto-commit? true
+         :dbtype "postgresql"
+         ...})
+
+
+(jdbc/insert! db :users {:fname "Ivan"})
+(jdbc/insert! db :users {:fname "Huan"})
+
+
+BEGIN
+INSERT INTO users ( fname ) VALUES ( $1 )
+parameters: $1 = 'Ivan'
+COMMIT
+
+BEGIN
+INSERT INTO users ( fname ) VALUES ( $1 )
+parameters: $1 = 'Huan'
+COMMIT
+
+(def db {:auto-commit? false
+         :dbtype "postgresql"
+         :dbname "test"
+         :host "127.0.0.1"
+         :user "book"
+         :password "book"})
+
+(def conn (jdbc/get-connection db))
+
+(def db {:auto-commit? true
+         :dbtype "postgresql"
+         :dbname "test"
+         :host "127.0.0.1"
+         :user "book"
+         :password "book"
+         :connection conn})
+
+
+(jdbc/insert! db :users {:fname "Ivan"} {:transaction? false})
+(jdbc/insert! db :users {:fname "Huan"} {:transaction? false})
+
+(jdbc/execute! db "commit" {:transaction? false})

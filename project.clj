@@ -67,7 +67,10 @@
                  [tortue/spy "2.0.0"]
                  [ring/ring-mock "0.4.0"]
                  [org.clojure/test.check "0.10.0"]
-                 [etaoin "0.3.6"]]
+                 [etaoin "0.3.6"]
+
+                 ;; db/jdbc
+                 [org.clojure/data.csv "1.0.0"]]
 
   :target-path "target/%s"
 
