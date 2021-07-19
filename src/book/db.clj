@@ -459,3 +459,107 @@ COMMIT
 (jdbc/insert! db :users {:fname "Huan"} {:transaction? false})
 
 (jdbc/execute! db "commit" {:transaction? false})
+
+
+BEGIN;
+
+INSERT INTO users (fname, email) VALUES ('Ivan', 'ivan@test.com') RETURNING id;
+
+id
+----
+ 59
+(1 row)
+
+INSERT INTO profiles (user_id, avatar) VALUES (59, 'facepalm.jpg');
+
+COMMIT;
+
+
+(jdbc/insert! db :users {:fname "Ivan"})
+(jdbc/insert! db :users {:fname "Huan"})
+
+
+BEGIN
+INSERT INTO users ( fname ) VALUES ( $1 )
+parameters: $1 = 'Ivan'
+COMMIT
+
+BEGIN
+INSERT INTO users ( fname ) VALUES ( $1 )
+parameters: $1 = 'Huan'
+COMMIT
+
+
+(jdbc/insert! db :users {:fname "Ivan"} {:transaction? false})
+(jdbc/insert! db :users {:fname "Huan"} {:transaction? false})
+
+
+INSERT INTO users ( fname ) VALUES ( $1 )
+parameters: $1 = 'Ivan'
+
+INSERT INTO users ( fname ) VALUES ( $1 )
+parameters: $1 = 'Huan'
+
+
+(jdbc/with-db-transaction [tx db]
+  (jdbc/insert! tx :users {:fname "Ivan"})
+  (jdbc/insert! tx :users {:fname "Huan"}))
+
+BEGIN
+INSERT INTO users ( fname ) VALUES ( $1 )
+parameters: $1 = 'Ivan'
+
+INSERT INTO users ( fname ) VALUES ( $1 )
+parameters: $1 = 'Huan'
+COMMIT
+
+
+(jdbc/with-db-transaction [tx db]
+  (jdbc/insert! db :users {:fname "Ivan"})
+  (jdbc/insert! db :users {:fname "Huan"}))
+
+
+book_postgres | 2021-07-17 09:07:45.298 UTC [113] LOG:  execute <unnamed>: BEGIN
+book_postgres | 2021-07-17 09:07:45.298 UTC [113] LOG:  execute <unnamed>: INSERT INTO users ( fname ) VALUES ( $1 )
+book_postgres | 2021-07-17 09:07:45.302 UTC [113] LOG:  execute S_1: COMMIT
+
+book_postgres | 2021-07-17 09:07:45.330 UTC [114] LOG:  execute <unnamed>: BEGIN
+book_postgres | 2021-07-17 09:07:45.330 UTC [114] LOG:  execute <unnamed>: INSERT INTO users ( fname ) VALUES ( $1 )
+book_postgres | 2021-07-17 09:07:45.336 UTC [114] LOG:  execute S_1: COMMIT
+
+
+(jdbc/with-db-transaction [tx db]
+
+  (let [[{user-id :id}]
+        (jdbc/insert! tx :users {:fname "Ivan"})
+
+        [{profile-id :id}]
+        (jdbc/insert! tx :profiles {:user_id user-id :avatar "cat.jpg"})]
+
+    {:user/id user-id
+     :profile/id profile-id}))
+
+
+(jdbc/with-db-transaction [tx db {:isolation :serializable}]
+
+  (let [[{user-id :id}]
+        (jdbc/insert! tx :users {:fname "Ivan"})
+
+        [{profile-id :id}]
+        (jdbc/insert! tx :profiles {:user_id user-id :avatar "cat.jpg"})]
+
+    {:user/id user-id
+     :profile/id profile-id}))
+
+
+(jdbc/with-db-transaction
+  [tx db {:isolation :serializable}]
+  ...)
+
+
+SHOW TRANSACTION ISOLATION LEVEL
+SET SESSION CHARACTERISTICS AS TRANSACTION ISOLATION LEVEL SERIALIZABLE
+BEGIN
+...
+COMMIT
+SET SESSION CHARACTERISTICS AS TRANSACTION ISOLATION LEVEL READ COMMITTED
