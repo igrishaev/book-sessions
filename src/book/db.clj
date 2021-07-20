@@ -4,6 +4,8 @@
    [clojure.data.csv :as csv]
    [clojure.java.io :as io]
 
+   [hikari-cp.core :as cp]
+   [mount.core :as mount :refer [defstate]]
    [clojure.java.jdbc :as jdbc]
    [com.stuartsierra.component :as component]
    [clojure.tools.logging :as log]))
@@ -563,3 +565,119 @@ BEGIN
 ...
 COMMIT
 SET SESSION CHARACTERISTICS AS TRANSACTION ISOLATION LEVEL READ COMMITTED
+
+
+(def db {:dbtype "postgresql"
+         :dbname "test"
+         ...})
+
+
+"jdbc:postgresql://127.0.0.1:5432/test"
+
+(jdbc/with-db-connection [conn db]
+  (jdbc/query conn "select 1"))
+
+(jdbc/with-db-connection [conn db]
+  conn)
+
+{:dbtype "postgresql"
+ :dbname "test"
+ ...
+ :connection #object[org.postgresql.jdbc.PgConnection 0x46b37678 "org.postgresql.jdbc.PgConnection@46b37678"]}
+
+
+(time (dotimes [_ 1000]
+        (jdbc/query db "select 1")))
+;; "Elapsed time: 19097.466607 msecs"
+
+(time
+ (jdbc/with-db-connection [conn db]
+   (dotimes [_ 1000]
+     (jdbc/query conn "select 1"))))
+;; "Elapsed time: 1680.252291 msecs"
+
+
+(def db {:dbtype "postgresql"
+         :dbname "test"
+         :host "127.0.0.1"
+         :user "book"
+         :password "book"})
+
+
+(require '[mount.core :as mount :refer [defstate]])
+
+(defstate DB
+  :start
+  (assoc db :connection
+         (jdbc/get-connection db))
+
+  :stop
+  (let [{:keys [connection]} DB]
+    (when connection
+      (.close connection))
+    db))
+
+
+(mount/start #'DB)
+
+
+(require '[hikari-cp.core :as cp])
+
+(def pool-config ;; truncated
+  {:minimum-idle       10
+   :maximum-pool-size  10
+   :adapter            "postgresql"
+   :username           "book"
+   :server-name        "127.0.0.1"
+   :port-number        5432})
+
+(defstate DB
+  :start
+  (let [pool (cp/make-datasource pool-config)]
+    {:datasource pool})
+  :stop
+  (-> DB :datasource cp/close-datasource))
+
+
+(def db
+  (with-meta
+    {:dbtype "postgresql"
+     :dbname "test"
+     :host "127.0.0.1"
+     :user "book"
+     :password "book"}
+
+    {'com.stuartsierra.component/start
+     (fn [this]
+       (assoc this :connection
+              (jdbc/get-connection this)))
+
+     'com.stuartsierra.component/stop
+     (fn [{:as this :keys [connection]}]
+       (when connection
+         (.close connection))
+       (dissoc this :connection))}))
+
+(def db-started (component/start db))
+
+(jdbc/query db-started "select 1")
+
+(component/stop db-started)
+
+
+;; [org.xerial/sqlite-jdbc "3.36.0"]
+
+(def db
+  {:classname   "org.sqlite.JDBC"
+   :subprotocol "sqlite"
+   :subname     ":memory:"})
+
+(def db
+  {:classname   "org.sqlite.JDBC"
+   :subprotocol "sqlite"
+   :subname     "database.sqlite"})
+
+
+(jdbc/execute! db "create table users (id integer)")
+
+(jdbc/query db "select * from users")

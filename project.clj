@@ -70,7 +70,8 @@
                  [etaoin "0.3.6"]
 
                  ;; db/jdbc
-                 [org.clojure/data.csv "1.0.0"]]
+                 [org.clojure/data.csv "1.0.0"]
+                 [org.xerial/sqlite-jdbc "3.36.0"]]
 
   :target-path "target/%s"
 
