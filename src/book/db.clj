@@ -4,6 +4,7 @@
    [clojure.data.csv :as csv]
    [clojure.java.io :as io]
 
+   [cheshire.core :as json]
    [hikari-cp.core :as cp]
    [mount.core :as mount :refer [defstate]]
    [clojure.java.jdbc :as jdbc]
@@ -678,6 +679,89 @@ SET SESSION CHARACTERISTICS AS TRANSACTION ISOLATION LEVEL READ COMMITTED
    :subname     "database.sqlite"})
 
 
+(def db
+  {:classname "org.sqlite.JDBC"
+   :subprotocol "sqlite"
+   :subname "/Users/ivan/Library/Application Support/Google/Chrome/Default/History"})
+
+
+
 (jdbc/execute! db "create table users (id integer)")
 
 (jdbc/query db "select * from users")
+
+(jdbc/query db "SELECT name FROM sqlite_master WHERE type = 'table'")
+
+(jdbc/query db "SELECT name FROM sqlite_master")
+
+
+
+
+;; https://www.howtogeek.com/255653/how-to-find-your-chrome-profile-folder-on-windows-mac-and-linux/
+
+
+(jdbc/query db "SELECT name FROM sqlite_master WHERE type = 'table'")
+
+({:name "meta"}
+ {:name "urls"}
+ {:name "sqlite_sequence"}
+ {:name "visits"}
+ {:name "visit_source"}
+ {:name "keyword_search_terms"}
+ {:name "downloads"}
+ {:name "downloads_url_chains"}
+ {:name "downloads_slices"}
+ {:name "segments"}
+ {:name "segment_usage"}
+ {:name "typed_url_sync_metadata"}
+ {:name "content_annotations"})
+
+
+(def db
+  {:classname   "org.sqlite.JDBC"
+   :subprotocol "sqlite"
+   :subname     ":memory:"})
+
+(def db*
+  (assoc db :connection
+         (jdbc/get-connection db)))
+
+(jdbc/execute! db* "create table users (id integer)")
+(jdbc/insert! db* :users {:id 1})
+(jdbc/query db* "select * from users")
+
+
+(def db
+  {:classname "org.sqlite.JDBC"
+   :subprotocol "sqlite"
+   :subname "/Users/ivan/Library/Application Support/Google/Chrome/Default/History"})
+
+
+(jdbc/query db* "SELECT name FROM sqlite_master WHERE type = 'table'")
+
+(jdbc/query db* "SELECT name FROM sqlite_master")
+
+
+
+(jdbc/execute! db "create table payments (id integer, sum integer, meta text)")
+
+
+(defn meta->str [meta-info]
+  (json/generate-string meta-info))
+
+(defn str->meta [db-string]
+  (json/parse-string db-string keyword))
+
+(jdbc/insert! db :payments {:id 1 :sum 99 :meta (meta->str {:year "2021"
+                                                            :from "test@test.com"
+                                                            :BIK "332233"
+                                                            :alerts 0})})
+
+(let [result
+      (jdbc/query db "select * from payments")]
+  (for [mapping result]
+    (update mapping :meta str->meta)))
+
+({:id 1
+  :sum 99
+  :meta {:year "2021" :from "test@test.com" :BIK "332233" :alerts 0}})
