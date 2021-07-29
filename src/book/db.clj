@@ -1,15 +1,18 @@
-(ns book.config
+(ns book.db
   (:require
 
    [clojure.data.csv :as csv]
    [clojure.java.io :as io]
+   [clojure.spec.alpha :as s]
 
    [cheshire.core :as json]
    [hikari-cp.core :as cp]
    [mount.core :as mount :refer [defstate]]
    [clojure.java.jdbc :as jdbc]
    [com.stuartsierra.component :as component]
-   [clojure.tools.logging :as log]))
+   [clojure.tools.logging :as log])
+
+  (:import org.joda.time.DateTime))
 
 
 ;; [org.clojure/java.jdbc "0.7.8"]
@@ -743,7 +746,10 @@ SET SESSION CHARACTERISTICS AS TRANSACTION ISOLATION LEVEL READ COMMITTED
 
 
 
-(jdbc/execute! db "create table payments (id integer, sum integer, meta text)")
+(jdbc/execute! db "CREATE TABLE payments (id INTEGER, sum INTEGER, meta TEXT)")
+
+
+(require '[cheshire.core :as json])
 
 
 (defn meta->str [meta-info]
@@ -752,10 +758,14 @@ SET SESSION CHARACTERISTICS AS TRANSACTION ISOLATION LEVEL READ COMMITTED
 (defn str->meta [db-string]
   (json/parse-string db-string keyword))
 
-(jdbc/insert! db :payments {:id 1 :sum 99 :meta (meta->str {:year "2021"
-                                                            :from "test@test.com"
-                                                            :BIK "332233"
-                                                            :alerts 0})})
+(jdbc/insert!
+ db :payments
+ {:id 1
+  :sum 99
+  :meta (meta->str {:year "2021"
+                    :from "test@test.com"
+                    :BIK "332233"
+                    :alerts 0})})
 
 (let [result
       (jdbc/query db "select * from payments")]
@@ -765,3 +775,224 @@ SET SESSION CHARACTERISTICS AS TRANSACTION ISOLATION LEVEL READ COMMITTED
 ({:id 1
   :sum 99
   :meta {:year "2021" :from "test@test.com" :BIK "332233" :alerts 0}})
+
+
+(-> (jdbc/query db "SELECT current_timestamp AS now")
+    first
+    :now
+    type)
+
+java.sql.Timestamp
+
+
+#_
+(extend-protocol jdbc/IResultSetReadColumn
+  java.sql.Timestamp
+  (result-set-read-column [v _2 _3]
+    (tc/from-sql-time v))
+  java.sql.Date
+  (result-set-read-column [v _2 _3]
+    (tc/from-sql-date v))
+  java.sql.Time
+  (result-set-read-column [v _2 _3]
+    (org.joda.time.DateTime. v)))
+
+
+(extend-protocol jdbc/IResultSetReadColumn
+  java.sql.Timestamp
+  (result-set-read-column [val _rsmeta _idx]
+    (new DateTime (.getTime val))))
+
+(first (jdbc/query db "SELECT current_timestamp AS now"))
+
+
+(first (jdbc/query db "SELECT current_timestamp AS now"))
+
+{:now #object[org.joda.time.DateTime 0x49a269a4 "2021-07-22T10:23:51.136+03:00"]}
+
+
+(extend-protocol jdbc/ISQLValue
+  DateTime
+  (sql-value [val]
+    (new java.sql.Timestamp (.getMillis val))))
+
+
+;; (ns project.core
+;;   (:require
+;;    project.time-joda ;; extends JDBC protocols
+
+;;    [cheshire.core :as json]
+;;    ...))
+
+
+{:ignored-unused-namespaces [project.time-joda
+                             ...]}
+
+
+{"foo": 1, "bar": 2}
+
+{"bar": 2, "foo": 1}
+
+
+(jdbc/query db "SELECT * from items")
+
+
+(-> (jdbc/query db "SELECT * from items")
+    first
+    :attrs
+    type)
+
+;; org.postgresql.util.PGobject
+
+
+(def attrs
+  (-> (jdbc/query db "SELECT * from items")
+      first
+      :attrs))
+
+
+(defmulti pg->clojure (fn [pg-obj]
+                        (.getValue pg-obj)))
+
+
+(extend-protocol jdbc/IResultSetReadColumn
+  org.postgresql.util.PGobject
+  (result-set-read-column [pg-obj _rsmeta _idx]
+
+    (let [pg-val (.getValue pg-obj)
+          pg-type (.getType pg-obj)]
+
+      (case pg-type
+        ("json" "jsonb")
+        (json/parse-string pg-val keyword)
+
+        "inet"
+        (java.net.InetAddress/getByName pg-val)
+
+        ;; else
+        pg-obj))))
+
+
+(supers (type {}))
+
+#{clojure.lang.IMeta java.lang.Runnable java.io.Serializable
+  clojure.lang.Associative clojure.lang.IPersistentMap clojure.lang.Counted
+  clojure.lang.IMapIterable java.util.Map clojure.lang.MapEquivalence
+  clojure.lang.IEditableCollection clojure.lang.ILookup
+  java.util.concurrent.Callable java.lang.Iterable clojure.lang.APersistentMap
+  clojure.lang.IObj java.lang.Object clojure.lang.IFn clojure.lang.Seqable
+  clojure.lang.AFn clojure.lang.IKVReduce clojure.lang.IPersistentCollection
+  clojure.lang.IHashEq}
+
+
+#{clojure.lang.IMeta
+  java.lang.Runnable
+  java.io.Serializable
+  ...
+  clojure.lang.IPersistentCollection}
+
+
+
+(extend-protocol jdbc/ISQLValue
+  clojure.lang.IPersistentCollection
+  (sql-value [val]
+    (doto (new org.postgresql.util.PGobject)
+      (.setType "jsonb")
+      (.setValue (json/generate-string val)))))
+
+
+(jdbc/insert! db :items
+              {:id 5
+               :title "The Catcher in the Rye"
+               :attrs {:author "J. D. Salinger"
+                       :genre "novel"
+                       :year 1951}})
+
+(jdbc/insert! db :items
+              {:id 6
+               :title "The Catcher in the Rye"
+               :attrs ["book" "novel"]})
+
+(jdbc/execute! db ["INSERT INTO items VALUES (?, ?, ?)" 6 "The Catcher in the Rye" {:year 1951 :genre "novel" :author "J. D. Salinger"}])
+
+(jdbc/execute! db ["INSERT INTO items VALUES (?, ?, ?)" 6 "The Catcher in the Rye" ["book" "novel"]])
+
+
+(jdbc/update! db :items
+              {:tags ["book" "novel"]}
+              ["id = ?" 5])
+
+
+(jdbc/get-by-id db :items 5)
+
+
+(supers (type []))
+(supers (type ()))
+(supers (type (repeat 1)))
+
+
+(require '[clojure.spec.alpha :as s])
+
+(s/def ::item-fields
+  (s/keys :req-un [::id ::title]
+          :opt-un [::attrs ::tags]))
+
+(s/def ::attrs
+  (s/map-of keyword? any?))
+
+(s/def ::tags
+  (s/coll-of string?))
+
+
+(defn insert-item [db fields]
+  {:pre [(s/assert ::item-fields fields)]}
+  (jdbc/insert! db :items fields))
+
+
+(s/check-asserts true)
+
+(insert-item db {:id 5
+                 :title "The Catcher in the Rye"
+                 :attrs {:author "J. D. Salinger"
+                         :genre "novel"
+                         :year 1951}
+                 :tags ["book" "novel" nil]})
+
+
+(first (jdbc/query db "select '(1, 2)'::point"))
+
+{:point #object[org.postgresql.geometric.PGpoint 0x28ebf39e "(1.0,2.0)"]}
+
+
+(defrecord Point [x y])
+
+
+(import 'org.postgresql.geometric.PGpoint)
+
+(extend-protocol jdbc/IResultSetReadColumn
+  PGpoint
+  (result-set-read-column [pg-point _rsmeta _idx]
+    (new Point (.-x pg-point) (.-y pg-point))))
+
+
+(extend-protocol jdbc/ISQLValue
+  Point
+  (sql-value [{:keys [x y]}]
+    (new PGpoint x y)))
+
+
+(jdbc/query db ["select ? as point" (new Point 1 2)])
+(jdbc/query db ["select ? as point" (map->Point {:x 1 :y 2})])
+(jdbc/query db ["select ? as point" #book.db.Point{:x 1 :y 2}])
+
+
+(let [events (get-events http-client)
+      sql "select * from users u
+join profiles p on p.user_id = u.id
+where u.is_active
+and p.created_at > ..."
+      result (jdbc/query db sql)]
+  ...)
+
+
+"where ... and not u.is_deleted"
