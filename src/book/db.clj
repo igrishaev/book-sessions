@@ -5,6 +5,8 @@
    [clojure.java.io :as io]
    [clojure.spec.alpha :as s]
 
+   [hugsql.core :as hugsql]
+
    [cheshire.core :as json]
    [hikari-cp.core :as cp]
    [mount.core :as mount :refer [defstate]]
@@ -996,3 +998,13 @@ and p.created_at > ..."
 
 
 "where ... and not u.is_deleted"
+
+
+(require '[hugsql.core :as hugsql])
+
+
+(hugsql/def-db-fns "sql/queries.sql")
+
+(list-users db)
+
+(get-user-by-id db {:id 1})
