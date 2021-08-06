@@ -5,6 +5,9 @@
    [clojure.java.io :as io]
    [clojure.spec.alpha :as s]
 
+   [honey.sql :as sql]
+   [honey.sql.helpers :as h]
+
    [hugsql.core :as hugsql]
 
    [cheshire.core :as json]
@@ -14,11 +17,8 @@
    [com.stuartsierra.component :as component]
    [clojure.tools.logging :as log])
 
-  (:import org.joda.time.DateTime))
-
-
-;; [org.clojure/java.jdbc "0.7.8"]
-;; [org.postgresql/postgresql "42.1.3"]
+  (:import org.joda.time.DateTime
+           com.github.vertical_blank.sqlformatter.SqlFormatter))
 
 
 (def db {:dbtype "postgresql"
@@ -26,6 +26,9 @@
          :host "127.0.0.1"
          :user "book"
          :password "book"})
+
+;; [org.clojure/java.jdbc "0.7.8"]
+;; [org.postgresql/postgresql "42.1.3"]
 
 
 (jdbc/query db "select 1 as value")
@@ -1002,9 +1005,175 @@ and p.created_at > ..."
 
 (require '[hugsql.core :as hugsql])
 
-
 (hugsql/def-db-fns "sql/queries.sql")
 
 (list-users db)
 
 (get-user-by-id db {:id 1})
+
+
+{:id 1 :fname "Ivan", ...}
+
+
+(create-user db {:fname "Ioann" :lname "Smith" :email "test@test.com" :age 30})
+
+{:id 76, :fname "Ioann", :lname "Smith", :email "test@test.com", :age 30}
+
+{:id 76, :fname "Ioann", ...}
+
+
+​​:command :query
+:command :insert
+:command :execute
+:command :returning-execute
+
+
+(jdbc/with-db-transaction [tx db]
+  (create-user tx {:fname "User1" :lname "Lname1" :email "test1@test.com" :age 30})
+  (create-user tx {:fname "User2" :lname "Lname2" :email "test2@test.com" :age 30}))
+
+
+(jdbc/with-db-transaction [tx db]
+  (create-user tx {:fname "User1" ...})
+  (create-user tx {:fname "User2" ...}))
+
+
+(get-user-by-id db {:id 1 :user-fields (user-fields)})
+
+(get-user-by-id db {:id 1})
+
+select * from users
+where name = :name
+and city = :city
+and year_birth = :year-birth
+limit 10
+
+
+(hugsql/def-db-fns "sql/queries.sql")
+
+(find-users db {:name "Ivan"})
+
+Execution error (ExceptionInfo) at hugsql.core/validate-parameters! (core.clj:83).
+Parameter Mismatch: :city parameter data not found.
+
+(find-users db {:name "Ivan" :city "Chita"})
+
+
+select * from users
+where fname = $1
+and city = $2
+limit 10
+parameters: $1 = 'Ivan', $2 = 'Chita'
+
+(get-user-by-id db {:id 1})
+(get-user-by-id db {:id 1 :user-fields (user-fields)})
+
+
+{:id 1 :fname "Ivan" :lname "Petrov" :email "...", :age ...}
+
+(find-users2 db {:with-photo? true})
+
+select * from users u
+join photos p on p.user_id = u.id
+
+
+
+(get-user-by-id db {:id 1 :user-fields (user-fields {:root? true})})
+
+
+(def query
+  {:select [:*]
+   :from [:users]
+   :where [:= :id 1]})
+
+(require '[honey.sql :as sql])
+
+(sql/format query)
+;; ["SELECT * FROM users WHERE id = ?" 1]
+
+(jdbc/query db (sql/format query))
+
+"SELECT * FROM users WHERE id = 1"
+
+
+(def query
+  {:insert-into :users
+   :columns [:id :fname :email]
+   :values [[99 "Ivan" "test@test.com"]]})
+
+(sql/format query)
+
+["INSERT INTO users (id, fname, email) VALUES (?, ?, ?)"
+ 99
+ "Ivan"
+ "test@test.com"]
+
+
+(def query
+  {:select [:*]
+   :from [:users]
+   :where [:= :fname :lname]})
+
+(sql/format query)
+
+["SELECT * FROM users WHERE fname = lname"]
+
+
+(def query
+  {:update :users
+   :set {:bonus_points [:+ :bonus_points 100]}
+   :where [[:= :id 99]]})
+
+(sql/format query)
+
+["UPDATE users SET bonus_points = bonus_points + ? WHERE (id = ?)" 100 99]
+
+
+(require '[honey.sql.helpers :as h])
+
+(def query
+  (-> (h/update :users)
+      (h/set {:bonus_points [:+ :bonus_points 100]})
+      (h/where [[:= :id 99]])))
+
+(sql/format query)
+["UPDATE users SET bonus_points = bonus_points + ? WHERE (id = ?)" 100 99]
+
+
+(def query
+  {:select [:*]
+   :from [:users]
+   :where [:= :id 1]})
+
+
+
+(defn map-query [db-spec map-sql & [map-params]]
+  (jdbc/query db-spec (sql/format map-sql {:params map-params})))
+
+(def query
+  {:select [:*]
+   :from [:users]
+   :where [:= :id :?id]})
+
+(map-query db query {:id 1})
+
+
+(defn map-query [db-spec map-sql & [map-params]]
+  (let [sql-vec (sql/format map-sql {:params map-params})]
+    (log/infof "Query: %s" (first sql-vec))
+    (jdbc/query db-spec sql-vec)))
+
+
+(map-query db query {:id 1})
+2021-08-06 10:29:25,702 INFO  book.db - Query: SELECT * FROM users WHERE id = ?
+
+
+(import 'com.github.vertical_blank.sqlformatter.SqlFormatter)
+
+(SqlFormatter/format "SELECT * FROM table1")
+
+
+(defn map-query [db-spec map-sql & [map-params]]
+  (let [sql-vec (sql/format map-sql {:params map-params})]
+    (log/infof "Query:\n%s" (SqlFormatter/format (first sql-vec)))
+    (jdbc/query db-spec sql-vec)))

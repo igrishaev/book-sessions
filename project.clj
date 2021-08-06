@@ -79,8 +79,7 @@
 
                  [com.github.seancorfield/honeysql "2.0.0-rc5"]
 
-
-                 ]
+                 [com.github.vertical-blank/sql-formatter "2.0.1"]]
 
   :target-path "target/%s"
 
