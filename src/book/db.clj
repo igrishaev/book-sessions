@@ -1177,3 +1177,108 @@ join photos p on p.user_id = u.id
   (let [sql-vec (sql/format map-sql {:params map-params})]
     (log/infof "Query:\n%s" (SqlFormatter/format (first sql-vec)))
     (jdbc/query db-spec sql-vec)))
+
+
+
+(sql/register-clause!
+ :create-index
+ (fn [_ {idx-name :name
+         :keys [unique?
+                if-not-exists?
+                on-table
+                on-field
+                using]}]
+
+   [(clojure.string/join
+     " "
+     ["CREATE"
+      (when unique? "UNIQUE")
+      "INDEX"
+      (when if-not-exists? "IF NOT EXISTS")
+      (name idx-name)
+      "ON"
+      (name on-table)
+      "(" (name on-field) ")"
+      (when using "USING")
+      (when using using)])])
+ nil)
+
+
+;; CREATE [ UNIQUE ] INDEX [ CONCURRENTLY ] [ [ IF NOT EXISTS ] имя ] ON [ ONLY ] имя_таблицы [ USING метод ]
+
+
+(sql/format {:create-index {:if-not-exists? true
+                            :name "idx_user_lname"
+                            :on-table :users
+                            :on-field :lname}})
+
+
+
+:where [:betwixt :x 1 10]
+
+["... WHERE x BETWIXT ? AND ?" 1 10]
+
+
+
+{:where [:= [:json->> :attributes :color] "red"]}
+
+["... WHERE attributes ->> 'color' = ?" "red"]
+
+
+
+
+
+
+
+
+(map-query db {:select [:*]
+               :from [:users]
+               :where [:>= :created_at [:raw "now() - interval '1 day'"]]})
+
+
+{:select [:*]
+ :from [:users]
+ :where [:>= :created_at [:raw "now() - interval '1 day'"]]}
+
+
+(map-query
+ db
+ {:update :items
+  :set {:attrs [:raw ["attrs || " [:param :new-attrs]]]}
+  :returning [:id]}
+ {:new-attrs {:color "red" :size "XL"}})
+
+
+(def user-base
+  {:select [:*]
+   :from [:users]})
+
+(map-query db user-base)
+
+
+(map-query db (assoc user-base
+                     :where [:= :fname "Ivan"]
+                     :limit 9))
+
+
+(let [q-fname "Ivan"
+      q-email "test@test.com"
+      q-age nil]
+
+  (cond-> (assoc user-base :where [:and])
+
+    q-fname
+    (update :where conj [:= :fname q-fname])
+
+    q-age
+    (update :where conj [:= :age q-age])
+
+    q-email
+    (update :where conj [:= :email q-email])))
+
+
+{:select [:*]
+ :from [:users]
+ :where [:and
+         [:= :fname "Ivan"]
+         [:= :email "test@test.com"]]}
