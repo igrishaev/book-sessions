@@ -1263,12 +1263,12 @@ join photos p on p.user_id = u.id
 
 (let [q-fname "Ivan"
       q-email "test@test.com"
-      q-age nil]
+      q-age nil
 
-  (cond-> (assoc user-base :where [:and])
+      query
+      (assoc user-base :where [:and [:= :fname q-fname]])]
 
-    q-fname
-    (update :where conj [:= :fname q-fname])
+  (cond-> query
 
     q-age
     (update :where conj [:= :age q-age])
@@ -1282,3 +1282,77 @@ join photos p on p.user_id = u.id
  :where [:and
          [:= :fname "Ivan"]
          [:= :email "test@test.com"]]}
+
+
+
+
+
+(let [q-fname "Ivan"
+      with-photo? true
+
+      query
+      (assoc user-base :where [:and [:= :fname q-fname]])]
+
+  (cond-> query
+
+    with-photo?
+    (assoc :join [:photos [:= :users.id :photos.user_id]])))
+
+
+
+(def rows
+  [{:user/id 1 :user/name "Ivan" :order/id 5 :order/title "Foo" :order/user-id 1}
+   {:user/id 1 :user/name "Ivan" :order/id 6 :order/title "Bar" :order/user-id 1}
+   {:user/id 2 :user/name "Huan" :order/id 7 :order/title "Out" :order/user-id 2}])
+
+
+(reduce
+ (fn [result row]
+
+   (let [user (select-keys row [:user/id :user/name])
+         user-id (:user/id user)
+         order (select-keys row [:order/id :order/title :order/user-id])]
+
+     (-> result
+         (update-in [:users user-id] merge user)
+         (update-in [:users user-id :user/orders] conj order))))
+ {}
+ rows)
+
+
+
+(def rows
+  [{:user/id 1 :user/name "Ivan" :post/id 5 :post/title "Foo" :post/user-id 1 :comment/id 2 :comment/text "aaa" :comment/post-id 5}])
+
+
+(reduce
+ (fn [result row]
+
+   (let [{user-id :user/id
+          post-id :post/id
+          comment-id :comment/id} row
+
+         user (select-keys row [:user/id :user/name])
+         post (select-keys row [:post/id :post/title :post/user-id])
+         comment (select-keys row [:comment/id :comment/text :comment/post-id])]
+
+     (-> result
+         (update-in [:users user-id :user/posts post-id] merge post)
+         (update-in [:users user-id :user/posts post-id :post/comments comment-id] merge comment)
+         (update-in [:users user-id] merge user))))
+ {}
+ rows)
+
+
+{:users
+ {1
+  {:user/posts
+   {5
+    {:post/id 5
+     :post/title "Foo"
+     :post/user-id 1
+     :post/comments {2 {:comment/id 2
+                        :comment/text "aaa"
+                        :comment/post-id 5}}}}
+   :user/id 1
+   :user/name "Ivan"}}}
