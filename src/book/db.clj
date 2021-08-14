@@ -1356,3 +1356,194 @@ join photos p on p.user_id = u.id
                         :comment/post-id 5}}}}
    :user/id 1
    :user/name "Ivan"}}}
+
+
+;; goods
+[{:id 1 :title "iPhone 99x"}
+ {:id 2 :title "Galaxy 33.plus"}
+ {:id 3 :title "G. Orwell 1984"}]
+
+;; categories
+[{:id 10 :title "Gadgets"}
+ {:id 20 :title "Books"}]
+
+
+[{:id 10
+  :title "Gadgets"
+  :goods [{:id 1 :title "iPhone 99x"}
+          {:id 2 :title "Galaxy 33.plus"}]}
+ {:id 20
+  :title "Books"
+  :goods [{:id 3 :title "G. Orwell 1984"}]}]
+
+
+(def cat-id 10)
+
+(jdbc/get-by-id db :categories cat-id)
+;; {:id 10 :title "Gadgets"}
+
+(jdbc/find-by-keys db :goods {:category_id cat-id})
+
+({:id 1 :title "iPhone 99x" :category_id 10}
+ {:id 2 :title "Galaxy 33.plus" :category_id 10})
+
+
+(let [cat-id 10
+
+      category
+      (jdbc/get-by-id ...)
+
+      goods
+      (jdbc/find-by-keys ...)]
+
+  (assoc category :goods goods))
+
+{:id 10 :title "Gadgets" :goods [...]}
+
+
+(def author-id 1)
+
+(jdbc/get-by-id db :authors author-id)
+;; {:id 1 :name "Ivan Petrov"}
+
+(jdbc/find-by-keys db :posts {:author_id author-id})
+
+;; ({:id 10, :title "Introduction to Python", :author_id 1})
+
+
+(let [author-id 1
+      author (jdbc/get-by-id ...)
+      posts (jdbc/find-by-keys ...)]
+  (assoc author :posts posts))
+
+;; {:id 1 :name "Ivan Petrov" :posts [...]}
+
+
+;; authors
+[{:id 1 :name "Ivan Petrov"}
+ {:id 2 :name "Ivan Rublev"}]
+
+;; posts
+[{:id :title "Introduction to Python" :author-id 1}
+ {:id :title "Thoughts on LISP" :author-id 2}]
+
+
+
+[{:id 1
+  :name "Ivan Petrov"
+  :posts [{:id
+           :title "Introduction to Python"
+           :author-id 1}]}
+ {:id 2
+  :name "Ivan Rublev"
+  :posts [{:id
+           :title "Thoughts on LISP"
+           :author-id 2}]}]
+
+
+(jdbc/query db ["SELECT * FROM authors WHERE name LIKE '%' || ? || '%'" "Ivan"])
+
+({:id 1 ...} {:id 2 ...})
+
+
+(for [author authors]
+  (let [{:keys [id]} author
+        posts (jdbc/find-by-keys db :posts {:author_id id})]
+    (assoc author :posts posts)))
+
+...FROM posts WHERE author_id IN (?, ?, ...)
+
+["SELECT * FROM posts WHERE author_id IN (?,?,?,?,?,?,?,?,?,?)"
+ 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+
+(jdbc/query db ["SELECT * FROM posts WHERE author_id IN (?,?,?,?,?,?,?,?,?,?)"
+                1, 2, 3, 4, 5, 6, 7, 8, 9, 10])
+
+
+(defn fetch-related
+  [db-spec table fk-name fk-vals])
+
+(fetch-related db :posts :author_id [1..10])
+
+
+{1 {:id 1 :name "Ivan Petrov"}
+ 2 {:id 2 :name "Ivan Rublev"}}
+
+
+
+(defn by-chunks [coll n]
+  (partition n n [] coll))
+
+(reduce
+ (fn [result ids-chunk]
+   (let [rows (fetch-related ... ids-chunk)]
+     (into result rows)))
+ []
+ (by-chunks ids-all 100))
+
+
+(def ids-all [1 2 3 4 5])
+
+
+(let [ids-chunks (by-chunks ids-all 100)
+      futs (doall
+            (for [ids-chunk ids-chunks]
+              (future
+                (fetch-related ... ids-chunk))))]
+  (reduce
+   (fn [result fut]
+     (into result @fut))
+   []
+   futs))
+
+
+(def ^java.sql.Connection conn
+  (jdbc/get-connection db))
+
+(def array (.createArrayOf conn "INTEGER" (object-array [1 2 3 4 5])))
+
+(jdbc/query
+ (assoc db :connection conn)
+ ["select * from authors where name in (?)" array])
+
+
+(extend-protocol jdbc/ISQLParameter
+
+  java.sql.Array
+
+  (set-parameter [val stmt ix]
+    (println val stmt ix)
+    (.setArray stmt ix val)))
+
+
+(def ^java.sql.Connection conn
+  (jdbc/get-connection db))
+
+(def array (.createArrayOf conn "INTEGER" (object-array [1 2 3 4 5])))
+
+(def stmp
+  (.prepareStatement conn "select * from authors where id = ANY(?)"))
+
+(.setArray stmp 1 array)
+
+(def rs (.executeQuery stmp))
+
+(resultset-seq rs)
+
+
+
+
+(def ^java.sql.Connection conn
+  (jdbc/get-connection db))
+
+(def array
+  (.createArrayOf conn "INTEGER" (object-array [1 2 3 4 5])))
+
+(extend-protocol jdbc/ISQLParameter
+  java.sql.Array
+  (set-parameter [val ^java.sql.PreparedStatement stmt ix]
+    (.setArray stmt ix val)))
+
+(jdbc/query
+ (assoc db :connection conn)
+ ["select * from authors where id = ANY(?)" array])
