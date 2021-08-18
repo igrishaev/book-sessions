@@ -63,10 +63,9 @@ INSERT INTO posts (id, author_id, title) VALUES
 
 
 
-
 INSERT INTO comments (id, post_id, text) VALUES
   (100, 10, 'Thanks for sharing this!'),
-  (200, 20, 'Nice reading, it was useful.'),
+  (200, 10, 'Nice reading, it was useful.'),
   (300, 30, 'TL;DR: you must learn lisp');
 
 
@@ -102,3 +101,26 @@ SELECT
   p.author_id as "post/author-id"
 FROM authors a
 JOIN posts p ON p.author_id = a.id;
+
+
+
+SELECT
+  a.id        as "author/id",
+  a.name      as "author/name",
+  p.id        as "post/id",
+  p.title     as "post/title",
+  p.author_id as "post/author-id",
+  c.id        as "comment/id",
+  c.text      as "comment/text"
+FROM authors a
+JOIN posts p ON p.author_id = a.id
+LEFT JOIN comments c ON c.post_id = p.id;
+
+
+ author/id | author/name | post/id |         post/title          | post/author-id | comment/id |         comment/text
+-----------+-------------+---------+-----------------------------+----------------+------------+------------------------------
+         1 | Ivan Petrov |      10 | Introduction to Python      |              1 |        100 | Thanks for sharing this!
+         1 | Ivan Petrov |      10 | Introduction to Python      |              1 |        200 | Nice reading, it was useful.
+         2 | Ivan Rublev |      30 | Is mining still profitable? |              2 |        300 | TL;DR: you must learn lisp
+         1 | Ivan Petrov |      20 | Thoughts on LISP            |              1 |            |
+         2 | Ivan Rublev |      40 | Mining on Raspberry Pi      |              2 |            |
