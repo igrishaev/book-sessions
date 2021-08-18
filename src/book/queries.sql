@@ -90,3 +90,15 @@ Ivan Petrov
 Ivan Rublev
 - Is mining still profitable?
 - Mining on Raspberry Pi
+
+
+SELECT * FROM authors WHERE id = ANY('{1,2,3,4,5}');
+
+SELECT
+  a.id        as "author/id",
+  a.name      as "author/name",
+  p.id        as "post/id",
+  p.title     as "post/title",
+  p.author_id as "post/author-id"
+FROM authors a
+JOIN posts p ON p.author_id = a.id;
