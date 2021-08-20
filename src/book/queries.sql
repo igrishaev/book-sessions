@@ -124,3 +124,63 @@ LEFT JOIN comments c ON c.post_id = p.id;
          2 | Ivan Rublev |      30 | Is mining still profitable? |              2 |        300 | TL;DR: you must learn lisp
          1 | Ivan Petrov |      20 | Thoughts on LISP            |              1 |            |
          2 | Ivan Rublev |      40 | Mining on Raspberry Pi      |              2 |            |
+
+
+SELECT
+  a.id                     as "author/id",
+  a.name                   as "author/name",
+  json_agg(row_to_json(p)) as "author/posts"
+FROM authors a
+JOIN posts p ON p.author_id = a.id
+GROUP BY a.id;
+
+
+SELECT
+  a.id                     as "author/id",
+  a.name                   as "author/name",
+  json_agg(row_to_json(p)) as "author/posts",
+
+
+
+FROM authors a
+JOIN posts p ON p.author_id = a.id
+LEFT JOIN comments c ON c.post_id = p.id
+GROUP BY a.id;
+
+
+
+SELECT
+  p.id        as "post/id",
+  p.title     as "post/title",
+  p.author_id as "post/author-id",
+  json_agg(row_to_json(c)) FILTER (WHERE c IS NOT NULL) as "post/comments"
+FROM posts p
+LEFT JOIN comments c ON c.post_id = p.id
+group by p.id;
+
+
+ post/id |         post/title          | post/author-id |                                                       post/comments
+---------+-----------------------------+----------------+----------------------------------------------------------------------------------------------------------------------------
+      10 | Introduction to Python      |              1 | [{"id":100,"text":"Thanks for sharing this!","post_id":10}, {"id":200,"text":"Nice reading, it was useful.","post_id":10}]
+      20 | Thoughts on LISP            |              1 |
+      30 | Is mining still profitable? |              2 | [{"id":300,"text":"TL;DR: you must learn lisp","post_id":30}]
+      40 | Mining on Raspberry Pi      |              2 |
+
+
+SELECT
+  a.id                         as "author/id",
+  a.name                       as "author/name",
+  json_agg(row_to_json(posts)) as "author/posts"
+FROM
+  authors a,
+  (SELECT
+    p.id        as "post/id",
+    p.title     as "post/title",
+    p.author_id as "post/author-id",
+    json_agg(row_to_json(c)) FILTER (WHERE c IS NOT NULL) as "post/comments"
+  FROM posts p
+  LEFT JOIN comments c ON c.post_id = p.id
+  GROUP BY p.id
+) AS posts
+WHERE a.id = posts."post/author-id"
+GROUP BY a.id;

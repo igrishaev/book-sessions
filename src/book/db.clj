@@ -1979,3 +1979,53 @@ LEFT JOIN comments c ON c.post_id = p.id;
     :db/index 4
     :post/title "Mining on Raspberry Pi"
     :post/author-id 2}]}]
+
+
+(def query
+  "SELECT
+  a.id                         as \"author/id\",
+  a.name                       as \"author/name\",
+  json_agg(row_to_json(posts)) as \"author/posts\"
+FROM
+  authors a,
+  (SELECT
+    p.id        as \"post/id\",
+    p.title     as \"post/title\",
+    p.author_id as \"post/author-id\",
+    json_agg(row_to_json(c)) FILTER (WHERE c IS NOT NULL) as \"post/comments\"
+  FROM posts p
+  LEFT JOIN comments c ON c.post_id = p.id
+  GROUP BY p.id
+) AS posts
+WHERE a.id = posts.\"post/author-id\"
+GROUP BY a.id;
+")
+
+
+(jdbc/query db query)
+
+
+[#:author{:id 1
+          :name "Ivan Petrov"
+          :posts
+          [#:post{:id 10
+                  :title "Introduction to Python"
+                  :author-id 1
+                  :comments [{:id 100 :text "Thanks for sharing this!" :post_id 10}
+                             {:id 200
+                              :text "Nice reading it was useful."
+                              :post_id 10}]}
+           #:post{:id 20
+                  :title "Thoughts on LISP"
+                  :author-id 1
+                  :comments nil}]}
+ #:author{:id 2
+          :name "Ivan Rublev"
+          :posts [#:post{:id 30
+                         :title "Is mining still profitable?"
+                         :author-id 2
+                         :comments [{:id 300 :text "TL;DR: you must learn lisp" :post_id 30}]}
+                  #:post{:id 40
+                         :title "Mining on Raspberry Pi"
+                         :author-id 2
+                         :comments nil}]}]
