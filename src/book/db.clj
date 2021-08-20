@@ -4,6 +4,7 @@
    [clojure.data.csv :as csv]
    [clojure.java.io :as io]
    [clojure.spec.alpha :as s]
+   [clojure.walk :as walk]
 
    [honey.sql :as sql]
    [honey.sql.helpers :as h]
@@ -1557,6 +1558,9 @@ join photos p on p.user_id = u.id
 (defn get-author [db-row]
   (select-keys db-row [:author/id :author/name]))
 
+(defn get-post [db-row]
+  (select-keys db-row [:post/id :post/title :post/author-id]))
+
 
 (defn get-entity [entity db-row]
   (reduce-kv
@@ -1568,13 +1572,17 @@ join photos p on p.user_id = u.id
    db-row))
 
 
-
 (def row
   {:author/id 1
    :author/name "Ivan Petrov"
    :post/id 10
    :post/title "Introduction to Python"
    :post/author-id 1})
+
+
+(get-author row)
+
+(get-post row)
 
 (get-entity "author" row)
 #:author{:id 1 :name "Ivan Petrov"}
@@ -1593,6 +1601,15 @@ join photos p on p.user_id = u.id
 
 {"author" #:author{:id 1 :name "Ivan Petrov"}
  "post" #:post{:id 10 :title "Introduction to Python" :author-id 1}}
+
+
+(let [{:strs [author
+              post
+              comment]} (row->entities row)]
+  ...)
+
+
+
 
 
 (jdbc/query db "SELECT
@@ -1689,3 +1706,276 @@ JOIN posts p ON p.author_id = a.id;
              :name "Ivan Rublev"
              :posts {30 #:post{:id 30 :title "Is mining still profitable?" :author-id 2}
                      40 #:post{:id 40 :title "Mining on Raspberry Pi" :author-id 2}}}}}
+
+
+(reduce
+ (fn [result row]
+   (let [author    (get-author row)
+         post      (get-post row)
+         author-id (:author/id author)
+         post-id   (:post/id post)]
+     (-> result
+         (update-in [:authors author-id] merge author)
+         (update-in [:authors author-id :author/posts post-id] merge post))))
+ {}
+ db-result)
+
+
+{:authors
+ {1 #:author{:id 1
+             :name "Ivan Petrov"
+             :posts {10 #:post{:id 10 :title "Introduction to Python" :author-id 1}
+                     20 #:post{:id 20 :title "Thoughts on LISP" :author-id 1}}}
+  2 #:author{:id 2
+             :name "Ivan Rublev"
+             :posts {30 #:post{:id 30 :title "Is mining still profitable?" :author-id 2}
+                     40 #:post{:id 40 :title "Mining on Raspberry Pi" :author-id 2}}}}}
+
+
+(jdbc/query db "SELECT
+  a.id        as \"author/id\",
+  a.name      as \"author/name\",
+  p.id        as \"post/id\",
+  p.title     as \"post/title\",
+  p.author_id as \"post/author-id\",
+  c.id        as \"comment/id\",
+  c.text      as \"comment/text\",
+  c.post_id   as \"comment/post-id\"
+FROM authors a
+JOIN posts p ON p.author_id = a.id
+LEFT JOIN comments c ON c.post_id = p.id;
+")
+
+
+(def db-result
+  '
+  ({:author/id 1
+    :author/name "Ivan Petrov"
+    :post/id 10
+    :post/title "Introduction to Python"
+    :post/author-id 1
+    :comment/id 100
+    :comment/text "Thanks for sharing this!"
+    :comment/post-id 10}
+   {:author/id 1
+    :author/name "Ivan Petrov"
+    :post/id 10
+    :post/title "Introduction to Python"
+    :post/author-id 1
+    :comment/id 200
+    :comment/text "Nice reading it was useful."
+    :comment/post-id 10}
+   {:author/id 2
+    :author/name "Ivan Rublev"
+    :post/id 30
+    :post/title "Is mining still profitable?"
+    :post/author-id 2
+    :comment/id 300
+    :comment/text "TL;DR: you must learn lisp"
+    :comment/post-id 30}
+   {:author/id 1
+    :author/name "Ivan Petrov"
+    :post/id 20
+    :post/title "Thoughts on LISP"
+    :post/author-id 1
+    :comment/id nil
+    :comment/text nil
+    :comment/post-id nil}
+   {:author/id 2
+    :author/name "Ivan Rublev"
+    :post/id 40
+    :post/title "Mining on Raspberry Pi"
+    :post/author-id 2
+    :comment/id nil
+    :comment/text nil
+    :comment/post-id nil}))
+
+
+
+(reduce
+ (fn [result row]
+
+   (let [{:strs [author post comment]}
+         (row->entities row)
+
+         {author-id :author/id}   author
+         {post-id :post/id}       post
+         {comment-id :comment/id} comment]
+
+     (cond-> result
+       :then
+       (update-in [:authors author-id] merge author)
+
+       :then
+       (update-in [:authors author-id :author/posts post-id] merge post)
+
+       comment-id
+       (update-in [:authors author-id :author/posts post-id :post/comments comment-id] merge comment))))
+ {}
+ db-result)
+
+
+
+{:authors
+ {1 #:author{:id 1
+             :name "Ivan Petrov"
+             :posts {10 #:post{:id 10
+                               :title "Introduction to Python"
+                               :author-id 1
+                               :comments {100 #:comment{:id 100
+                                                        :text "Thanks for sharing this!"
+                                                        :post-id 10}
+                                          200 #:comment{:id 200
+                                                        :text "Nice reading it was useful."
+                                                        :post-id 10}}}
+                     20 #:post{:id 20 :title "Thoughts on LISP" :author-id 1}}}
+  2 #:author{:id 2
+             :name "Ivan Rublev"
+             :posts {30 #:post{:id 30
+                               :title "Is mining still profitable?"
+                               :author-id 2
+                               :comments {300 #:comment{:id 300
+                                                        :text "TL;DR: you must learn lisp"
+                                                        :post-id 30}}}
+                     40 #:post{:id 40 :title "Mining on Raspberry Pi" :author-id 2}}}}}
+
+
+(def enumerate
+  (partial map-indexed vector))
+
+
+(defn row->entities [idx db-row]
+  (reduce-kv
+   (fn [result k v]
+     (update result
+             (namespace k)
+             assoc
+             k v
+             :db/index idx))
+   {}
+   db-row))
+
+
+(reduce
+ (fn [result [idx row]]
+
+   (let [{:strs [author post comment]}
+         (row->entities idx row)
+
+         {author-id :author/id}   author
+         {post-id :post/id}       post
+         {comment-id :comment/id} comment]
+
+     (cond-> result
+       :then
+       (update-in [:authors author-id] merge author)
+
+       :then
+       (update-in [:authors author-id :author/posts post-id] merge post)
+
+       comment-id
+       (update-in [:authors author-id :author/posts post-id :post/comments comment-id] merge comment))))
+ {}
+ (enumerate db-result))
+
+
+(def result-grouped
+  {:authors
+   {1 {:author/id 1
+       :db/index 3
+       :author/name "Ivan Petrov"
+       :author/posts {10 {:post/id 10
+                          :db/index 1
+                          :post/title "Introduction to Python"
+                          :post/author-id 1
+                          :post/comments {100 {:comment/id 100
+                                               :db/index 0
+                                               :comment/text "Thanks for sharing this!"
+                                               :comment/post-id 10}
+                                          200 {:comment/id 200
+                                               :db/index 1
+                                               :comment/text "Nice reading it was useful."
+                                               :comment/post-id 10}}}
+                      20 {:post/id 20
+                          :db/index 3
+                          :post/title "Thoughts on LISP"
+                          :post/author-id 1}}}
+    2 {:author/id 2
+       :db/index 4
+       :author/name "Ivan Rublev"
+       :author/posts {30 {:post/id 30
+                          :db/index 2
+                          :post/title "Is mining still profitable?"
+                          :post/author-id 2
+                          :post/comments {300 {:comment/id 300
+                                               :db/index 2
+                                               :comment/text "TL;DR: you must learn lisp"
+                                               :comment/post-id 30}}}
+                      40 {:post/id 40
+                          :db/index 4
+                          :post/title "Mining on Raspberry Pi"
+                          :post/author-id 2}}}}})
+
+
+(require '[clojure.walk :as walk])
+
+(def entry?
+  (partial instance? clojure.lang.MapEntry))
+
+
+(def nested-tags
+  #{:authors :author/posts :post/comments})
+
+
+(defn remap-entities
+  [form]
+  (if (entry? form)
+    (let [[k v] form]
+      (if (contains? nested-tags k)
+        [k (->> v vals (sort-by :db/index) vec)]
+        form))
+    form))
+
+
+(:authors
+ (walk/prewalk remap-entities result-grouped))
+
+
+[{:author/id 1
+  :db/index 3
+  :author/name "Ivan Petrov"
+  :author/posts
+  [{:post/id 10
+    :db/index 1
+    :post/title "Introduction to Python"
+    :post/author-id 1
+    :post/comments
+    [{:comment/id 100
+      :db/index 0
+      :comment/text "Thanks for sharing this!"
+      :comment/post-id 10}
+     {:comment/id 200
+      :db/index 1
+      :comment/text "Nice reading it was useful."
+      :comment/post-id 10}]}
+   {:post/id 20
+    :db/index 3
+    :post/title "Thoughts on LISP"
+    :post/author-id 1}]}
+ {:author/id 2
+  :db/index 4
+  :author/name "Ivan Rublev"
+  :author/posts
+  [{:post/id 30
+    :db/index 2
+    :post/title "Is mining still profitable?"
+    :post/author-id 2
+    :post/comments
+    [{:comment/id 300
+      :db/index 2
+      :comment/text "TL;DR: you must learn lisp"
+      :comment/post-id 30}]}
+   {:post/id 40
+    :db/index 4
+    :post/title "Mining on Raspberry Pi"
+    :post/author-id 2}]}]
