@@ -9,6 +9,7 @@
    [honey.sql :as sql]
    [honey.sql.helpers :as h]
 
+   [flatland.ordered.map :refer [ordered-map]]
    [hugsql.core :as hugsql]
 
    [cheshire.core :as json]
@@ -1844,6 +1845,9 @@ LEFT JOIN comments c ON c.post_id = p.id;
   (partial map-indexed vector))
 
 
+(enumerate ["a" "b" "c"])
+
+
 (defn row->entities [idx db-row]
   (reduce-kv
    (fn [result k v]
@@ -1854,6 +1858,13 @@ LEFT JOIN comments c ON c.post_id = p.id;
              :db/index idx))
    {}
    db-row))
+
+
+
+(row->entities 3 {:post/id 1 :author/id 2})
+
+{"post" {:post/id 1 :db/index 3}
+ "author" {:author/id 2 :db/index 3}}
 
 
 (reduce
@@ -1875,6 +1886,15 @@ LEFT JOIN comments c ON c.post_id = p.id;
 
        comment-id
        (update-in [:authors author-id :author/posts post-id :post/comments comment-id] merge comment))))
+ {}
+ (enumerate db-result))
+
+
+(reduce
+ (fn [result [idx row]]
+   (let [{:strs [author post comment]}
+         (row->entities idx row)]
+     ...))
  {}
  (enumerate db-result))
 
@@ -2029,3 +2049,68 @@ GROUP BY a.id;
                          :title "Mining on Raspberry Pi"
                          :author-id 2
                          :comments nil}]}]
+
+
+{:authors
+ {1 {:author/id 1
+     :db/index 3
+     :author/posts
+     {10 {:post/id 10
+          :db/index 1
+          :post/comments
+          {100 {:comment/id 100
+                :db/index 0
+                :comment/post-id 10}
+           200 {:comment/id 200
+                :db/index 1
+                :comment/post-id 10}}}}}}}
+
+
+
+(into {} (for [x (range 8)]
+           [x x]))
+
+{0 0, 1 1, 2 2, 3 3, 4 4, 5 5, 6 6, 7 7}
+
+(into {} (for [x (range 9)]
+           [x x]))
+
+{0 0, 7 7, 1 1, 4 4, 6 6, 3 3, 2 2, 5 5, 8 8}
+
+(-> v vals count)
+
+
+(require '[flatland.ordered.map :refer [ordered-map]])
+
+
+
+[org.flatland/ordered "1.5.9"]              ;; project
+[flatland.ordered.map :refer [ordered-map]] ;; ns
+
+
+(into (ordered-map)
+      (for [x (range 16)]
+        [x x]))
+
+{0 0, 1 1, 2 2, ... 13 13, 14 14, 15 15}
+
+(fnil assoc (ordered-map))
+
+(def assoc*
+  (fnil assoc (ordered-map)))
+
+(:authors result-grouped)
+
+
+
+({:id 1
+  :title "iPhone 99x"
+  :attrs {:phone.display.diag 145
+          :phone.wifi.support true}}
+ {:id 2
+  :title "Galaxy 33.plus"
+  :attrs nil}
+ {:id 3
+  :title "G. Orwell 1984"
+  :attrs {:book.genre "dystopia"
+          :book.pages 215}})

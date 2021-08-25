@@ -72,6 +72,7 @@
                  ;; db/jdbc
                  [org.clojure/data.csv "1.0.0"]
                  [org.xerial/sqlite-jdbc "3.36.0"]
+                 [org.flatland/ordered "1.5.9"]
 
                  ;; r/source-logging-push-back-reader
                  [org.clojure/tools.reader "1.3.6"]

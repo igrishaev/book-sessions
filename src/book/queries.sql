@@ -184,3 +184,53 @@ FROM
 ) AS posts
 WHERE a.id = posts."post/author-id"
 GROUP BY a.id;
+
+
+
+CREATE TABLE goods (
+  id serial primary key,
+  title text not null
+);
+
+CREATE TABLE good_attrs (
+  id serial primary key,
+  good_id integer not null references goods(id),
+  attr text not null,
+  val jsonb
+);
+
+
+
+INSERT INTO goods (id, title)
+VALUES (1, 'iPhone 99x'),
+       (2, 'Galaxy 33.plus'),
+       (3, 'G. Orwell 1984');
+
+
+INSERT INTO good_attrs (good_id, attr, val)
+VALUES (1, 'phone.display.diag', '145'),
+       (1, 'phone.wifi.support', 'true'),
+       (3, 'book.pages', '215'),
+       (3, 'book.genre', '"dystopia"');
+
+
+SELECT
+  g.id,
+  g.title,
+  a.attrs
+FROM
+  goods g
+LEFT JOIN (
+  SELECT
+    ga.good_id,
+    jsonb_object_agg(ga.attr, ga.val) as attrs
+  FROM good_attrs ga
+    GROUP BY ga.good_id
+) a ON a.good_id = g.id;
+
+
+ id |     title      |                          attrs
+----+----------------+---------------------------------------------------------
+  1 | iPhone 99x     | {"phone.display.diag": 145, "phone.wifi.support": true}
+  2 | Galaxy 33.plus |
+  3 | G. Orwell 1984 | {"book.genre": "dystopia", "book.pages": 215}
