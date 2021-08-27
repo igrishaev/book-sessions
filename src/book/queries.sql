@@ -156,7 +156,7 @@ SELECT
   json_agg(row_to_json(c)) FILTER (WHERE c IS NOT NULL) as "post/comments"
 FROM posts p
 LEFT JOIN comments c ON c.post_id = p.id
-group by p.id;
+GROUP BY p.id;
 
 
  post/id |         post/title          | post/author-id |                                                       post/comments
@@ -206,7 +206,6 @@ VALUES (1, 'iPhone 99x'),
        (2, 'Galaxy 33.plus'),
        (3, 'G. Orwell 1984');
 
-
 INSERT INTO good_attrs (good_id, attr, val)
 VALUES (1, 'phone.display.diag', '145'),
        (1, 'phone.wifi.support', 'true'),
@@ -234,3 +233,98 @@ LEFT JOIN (
   1 | iPhone 99x     | {"phone.display.diag": 145, "phone.wifi.support": true}
   2 | Galaxy 33.plus |
   3 | G. Orwell 1984 | {"book.genre": "dystopia", "book.pages": 215}
+
+
+SELECT
+  ga.good_id,
+  jsonb_object_agg(ga.attr, ga.val) as attrs
+FROM good_attrs ga
+  GROUP BY ga.good_id;
+
+
+
+select 1 as id, 'foo' as name
+UNION
+select 2 as id, 'bar' as name;
+
+ id | name
+----+------
+  1 | foo
+  2 | bar
+
+
+CREATE TABLE admins (
+  id serial,
+  full_name text NOT NULL,
+  email text
+);
+
+INSERT INTO admins (full_name, email)
+VALUES ('Petr Smirnov', 'petr@test.com'),
+       ('Oleg Ivanov', 'oleg@test.com');
+
+SELECT
+  u.id AS id,
+  'user' AS type,
+  row_to_json(u) AS entity
+FROM
+  users u
+UNION ALL
+SELECT
+  a.id AS id,
+  'admin' AS type,
+  row_to_json(a) AS entity
+FROM
+  admins a;
+
+
+ id | type  |                                                                           entity
+----+-------+------------------------------------------------------------------------------------------------------------------------------------------------------------
+  1 | user  | {"id":1,"fname":"Ivan","lname":"Petrov","email":"test@test.com","age":30,"city":null,"year_birth":null,"created_at":"2021-08-10T07:36:03.934029+00:00"}
+  3 | user  | {"id":3,"fname":"Huan","lname":null,"email":null,"age":null,"city":null,"year_birth":null,"created_at":"2021-08-10T07:36:03.934029+00:00"}
+  1 | admin | {"id":1,"full_name":"Petr Smirnov","email":"petr@test.com"}
+  2 | admin | {"id":2,"full_name":"Oleg Ivanov","email":"oleg@test.com"}
+
+
+SELECT
+  u.id AS id,
+  'user' AS type,
+  to_jsonb(u) AS entity
+FROM
+  users u
+UNION
+SELECT
+  a.id AS id,
+  'admin' AS type,
+  to_jsonb(a) AS entity
+FROM
+  admins a;
+
+
+SELECT
+  u.id AS id,
+  'user' AS type,
+  row_to_json(u) AS entity
+FROM
+  users u
+UNION
+SELECT
+  a.id AS id,
+  'admin' AS type,
+  row_to_json(a) AS entity
+FROM
+  admins a;
+
+
+create table migrations (
+  migration_id text primary key,
+  created_at timestamp,
+  description text
+);
+
+
+1630047678-create-users-table.up.sql
+1630047678-create-users-table.down.sql
+
+1630048005-create-profiles-table.up.sql
+1630048005-create-profiles-table.down.sql

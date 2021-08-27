@@ -2027,18 +2027,17 @@ GROUP BY a.id;
 
 [#:author{:id 1
           :name "Ivan Petrov"
-          :posts
-          [#:post{:id 10
-                  :title "Introduction to Python"
-                  :author-id 1
-                  :comments [{:id 100 :text "Thanks for sharing this!" :post_id 10}
-                             {:id 200
-                              :text "Nice reading it was useful."
-                              :post_id 10}]}
-           #:post{:id 20
-                  :title "Thoughts on LISP"
-                  :author-id 1
-                  :comments nil}]}
+          :posts [#:post{:id 10
+                         :title "Introduction to Python"
+                         :author-id 1
+                         :comments [{:id 100 :text "Thanks for sharing this!" :post_id 10}
+                                    {:id 200
+                                     :text "Nice reading it was useful."
+                                     :post_id 10}]}
+                  #:post{:id 20
+                         :title "Thoughts on LISP"
+                         :author-id 1
+                         :comments nil}]}
  #:author{:id 2
           :name "Ivan Rublev"
           :posts [#:post{:id 30
@@ -2103,7 +2102,7 @@ GROUP BY a.id;
 
 
 
-({:id 1
+[{:id 1
   :title "iPhone 99x"
   :attrs {:phone.display.diag 145
           :phone.wifi.support true}}
@@ -2113,4 +2112,95 @@ GROUP BY a.id;
  {:id 3
   :title "G. Orwell 1984"
   :attrs {:book.genre "dystopia"
-          :book.pages 215}})
+          :book.pages 215}}]
+
+
+
+(def result
+  [{:id 1
+    :type "user"
+    :entity
+    {:id 1
+     :fname "Ivan"
+     :lname "Petrov"
+     :email "test@test.com"
+     :age 30
+     :city nil
+     :year_birth nil
+     :created_at "2021-08-10T10:36:03.934029+03:00"}}
+   {:id 3
+    :type "user"
+    :entity
+    {:id 3
+     :fname "Huan"
+     :lname nil
+     :email nil
+     :age nil
+     :city nil
+     :year_birth nil
+     :created_at "2021-08-10T10:36:03.934029+03:00"}}
+   {:id 1
+    :type "admin"
+    :entity {:id 1
+             :full_name "Petr Smirnov"
+             :email "petr@test.com"}}
+   {:id 2
+    :type "admin"
+    :entity {:id 2
+             :full_name "Oleg Ivanov"
+             :email "oleg@test.com"}}])
+
+
+
+
+(doseq [{:keys [id type entity]} result]
+  (case type
+    "user" (process-user ...)
+    "admin" (process-admin ...)))
+
+
+1630047678-create-users-table.up.sql
+1630047678-create-users-table.down.sql
+
+
+(def migrations
+  [{:id 1630047678
+    :description "Create users table"
+    :up "1630047678-create-users-table.up.sql"
+    :down "1630047678-create-users-table.down.sql"}
+   {:id 1630048005
+    :description "Create profiles table"
+    :up "1630048005-create-profiles-table.up.sql"
+    :down "1630048005-create-profiles-table.down.sql"}])
+
+
+(def current-db-id 1)
+
+
+(->> migrations
+     (filter (fn [{:keys [id]}]
+               (> id current-db-id)))
+     (sort-by :id)
+     (map :up))
+
+(->> migrations
+     (filter (fn [{:keys [id]}]
+               (and (>= id target_id)
+                    (< id current-db-id))))
+     (sort-by :id)
+     (reverse)
+     (map :down))
+
+
+:plugins [... [migratus-lein "0.7.3"]]
+
+
+mkdir -p resources/migrations
+cd resources/migrations
+
+touch 1630047678-create-users-table.up.sql
+touch 1630047678-create-users-table.down.sql
+touch 1630048005-create-profiles-table.up.sql
+touch 1630048005-create-profiles-table.down.sql
+
+:dependencies [... [migratus "1.3.5"]]

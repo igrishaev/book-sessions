@@ -7,7 +7,8 @@
   :license {:name "Eclipse Public License"
             :url "http://www.eclipse.org/legal/epl-v10.html"}
 
-  :plugins [[test2junit "1.1.2"]]
+  :plugins [[test2junit "1.1.2"]
+            [migratus-lein "0.7.3"]]
   :test2junit-output-dir "target/test2junit"
 
   ;; :test2junit-output-dir
@@ -18,6 +19,15 @@
   {:db-experimental
    (fn [test-meta]
      (some-> test-meta :pg/version (>= 11)))}
+
+  :migratus
+  {:store :database
+   :migration-dir "migrations"
+   :db {:dbtype "postgresql"
+        :dbname "migration_test"
+        :host "127.0.0.1"
+        :user "book"
+        :password "book"}}
 
   :dependencies [[org.clojure/clojure "1.10.0"]
 
@@ -34,7 +44,7 @@
                  [spec-dict "0.2.1"]
                  [metosin/spec-tools "0.10.4"]
                  [org.clojure/java.jdbc "0.7.8"]
-                 [migratus "1.2.7"]
+                 ;; [migratus "1.2.7"]
 
                  ;; for exceptions chapter
                  [slingshot "0.12.2"]
@@ -73,6 +83,7 @@
                  [org.clojure/data.csv "1.0.0"]
                  [org.xerial/sqlite-jdbc "3.36.0"]
                  [org.flatland/ordered "1.5.9"]
+                 [migratus "1.3.5"]
 
                  ;; r/source-logging-push-back-reader
                  [org.clojure/tools.reader "1.3.6"]
@@ -88,5 +99,7 @@
 
   :profiles {;; :uberjar {:resource-paths ["env/test/resources"]}
 
-             :test {:resource-paths ["env/test/resources"]}
-             :dev  {:resource-paths ["env/test/resources"]}})
+             ;; :test {:resource-paths ["env/test/resources"]}
+             ;; :dev  {:resource-paths ["env/test/resources"]}
+
+             })
