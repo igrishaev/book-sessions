@@ -12,6 +12,7 @@
    [flatland.ordered.map :refer [ordered-map]]
    [hugsql.core :as hugsql]
 
+   [migratus.core :as migratus]
    [cheshire.core :as json]
    [hikari-cp.core :as cp]
    [mount.core :as mount :refer [defstate]]
@@ -2204,3 +2205,61 @@ touch 1630048005-create-profiles-table.up.sql
 touch 1630048005-create-profiles-table.down.sql
 
 :dependencies [... [migratus "1.3.5"]]
+
+
+{:store :database
+ :migration-dir "migrations"
+ :db {:dbtype "postgresql"
+      :dbname "migration_test"
+      :host "127.0.0.1"
+      :user "book"
+      :password "book"}}
+
+
+:profiles
+{:dev {:dependencies [[migratus "1.3.5"]]}}
+
+
+1630133517-add-test-data.up.sql
+lein with-profile +test migratus migrate
+
+
+:profiles
+{:test {:resource-paths ["env/test/resources"]}}
+
+
+DB_USER=book DB_PASSWORD=book lein migratus migrate
+
+:migratus
+{:store :database
+ :migration-dir "migrations"
+ :db {:dbtype "postgresql"
+      :dbname "migration_test"
+      :host "127.0.0.1"
+      :user ~(System/getenv "DB_USER")
+      :password ~(System/getenv "DB_PASSWORD")}}
+
+
+(:require
+ [migratus.core :as migratus])
+
+(def db {:dbtype "postgresql"
+         :dbname "migration_test"
+         :host "127.0.0.1"
+         :user "book"
+         :password "book"})
+
+(def config
+  {:store :database
+   :migration-dir "migrations"
+   :db db})
+
+
+(migratus/init config)
+
+(migratus/migrate config)
+
+(migratus/rollback config)
+
+
+(migratus/create config "create-users-table")

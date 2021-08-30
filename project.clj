@@ -20,14 +20,16 @@
    (fn [test-meta]
      (some-> test-meta :pg/version (>= 11)))}
 
+  ;; "book"
+
   :migratus
   {:store :database
    :migration-dir "migrations"
    :db {:dbtype "postgresql"
         :dbname "migration_test"
         :host "127.0.0.1"
-        :user "book"
-        :password "book"}}
+        :user ~(System/getenv "DB_USER")
+        :password ~(System/getenv "DB_PASSWORD")}}
 
   :dependencies [[org.clojure/clojure "1.10.0"]
 
@@ -44,7 +46,6 @@
                  [spec-dict "0.2.1"]
                  [metosin/spec-tools "0.10.4"]
                  [org.clojure/java.jdbc "0.7.8"]
-                 ;; [migratus "1.2.7"]
 
                  ;; for exceptions chapter
                  [slingshot "0.12.2"]
@@ -99,7 +100,9 @@
 
   :profiles {;; :uberjar {:resource-paths ["env/test/resources"]}
 
-             ;; :test {:resource-paths ["env/test/resources"]}
+             :dev {:dependencies [[migratus "1.3.5"]]}
+
+             :test {:resource-paths ["env/test/resources"]}
              ;; :dev  {:resource-paths ["env/test/resources"]}
 
              })
