@@ -328,3 +328,29 @@ create table migrations (
 
 1630048005-create-profiles-table.up.sql
 1630048005-create-profiles-table.down.sql
+
+
+create table requests(
+  id serial primary key,
+  ip text not null,
+  country_code text null
+);
+
+insert into requests (ip)
+values
+('24.198.249.0'),
+('187.33.237.120');
+
+SELECT * FROM requests;
+
+ id |       ip       | country_code
+----+----------------+--------------
+  1 | 24.198.249.0   |
+  2 | 187.33.237.120 |
+
+
+
+ id |       ip       | country_code
+----+----------------+--------------
+  1 | 24.198.249.0   | US
+  2 | 187.33.237.120 | BR

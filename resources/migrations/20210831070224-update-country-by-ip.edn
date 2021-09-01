@@ -1,0 +1,3 @@
+{:ns book.migrations.update-country
+ :up-fn migrate-up
+ :down-fn migrate-down}

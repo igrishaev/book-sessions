@@ -16,7 +16,9 @@
    [cheshire.core :as json]
    [hikari-cp.core :as cp]
    [mount.core :as mount :refer [defstate]]
-   [clojure.java.jdbc :as jdbc]
+   ;; [clojure.java.jdbc :as jdbc]
+   [next.jdbc :as jdbc]
+   [next.jdbc.sql :as jdbc.sql]
    [com.stuartsierra.component :as component]
    [clojure.tools.logging :as log])
 
@@ -2240,8 +2242,9 @@ DB_USER=book DB_PASSWORD=book lein migratus migrate
       :password ~(System/getenv "DB_PASSWORD")}}
 
 
-(:require
- [migratus.core :as migratus])
+(
+  (:require
+   [migratus.core :as migratus]))
 
 (def db {:dbtype "postgresql"
          :dbname "migration_test"
@@ -2262,4 +2265,48 @@ DB_USER=book DB_PASSWORD=book lein migratus migrate
 (migratus/rollback config)
 
 
-(migratus/create config "create-users-table")
+(migratus/create config "update-country-by-ip")
+
+(migratus/create config "create-profiles-table")
+
+
+20210830075251-create-users-table.up.sql
+20210830075251-create-users-table.down.sql
+
+20210831064602-create-profiles-table.up.sql
+20210831064602-create-profiles-table.down.sql
+
+
+(def migrations
+  [{:id 20210830075251
+    :description "Create users table"
+    :up "20210830075251-create-users-table.up.sql"
+    :down "20210830075251-create-users-table.down.sql"}
+   {:id 20210831064602
+    :description "Create profiles table"
+    :up "20210831064602-create-profiles-table.up.sql"
+    :down "20210831064602-create-profiles-table.down.sql"}])
+
+
+(require '[next.jdbc :as jdbc])
+
+(require '[next.jdbc.sql :as jdbc.sql])
+
+(def ds (jdbc/get-datasource db))
+
+
+(jdbc/execute! ds ["select * from users"])
+
+
+(jdbc.sql/get-by-id ds :users 1)
+
+
+(jdbc/with-transaction [tx ds]
+  (jdbc.sql/get-by-id tx :users 1))
+
+
+(jdbc.sql/insert! ds :users {:id 199 :fname "Test"})
+
+(jdbc.sql/update! ds :users {:fname "Ivan"} ["fname = ?" "Test"])
+
+(jdbc.sql/query ds ["select * from users"])

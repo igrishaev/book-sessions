@@ -85,6 +85,7 @@
                  [org.xerial/sqlite-jdbc "3.36.0"]
                  [org.flatland/ordered "1.5.9"]
                  ;; [migratus "1.3.5"]
+                 [com.github.seancorfield/next.jdbc "1.2.709"]
 
                  ;; r/source-logging-push-back-reader
                  [org.clojure/tools.reader "1.3.6"]
