@@ -2363,3 +2363,9 @@ DB_USER=book DB_PASSWORD=book lein migratus migrate
         :title "t-shirt"
         :attrs {:size "XXL" :brand "Abibas"}
         :tags nil}
+
+
+(jdbc/with-transaction [tx ds]
+  (let [{:items/keys [id]}
+        (jdbc.sql/insert! tx :items {:title "t-shirt" :attrs {:size "XXL" :brand "Abibas"}})]
+    (jdbc.sql/insert! tx :sales {:item_id id :ratio 0.66})))
