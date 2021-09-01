@@ -19,10 +19,13 @@
    ;; [clojure.java.jdbc :as jdbc]
    [next.jdbc :as jdbc]
    [next.jdbc.sql :as jdbc.sql]
+   [next.jdbc.prepare :as jdbc.prepare]
+   [next.jdbc.result-set :as jdbc.rs]
    [com.stuartsierra.component :as component]
    [clojure.tools.logging :as log])
 
   (:import org.joda.time.DateTime
+           org.postgresql.util.PGobject
            com.github.vertical_blank.sqlformatter.SqlFormatter))
 
 
@@ -2292,6 +2295,10 @@ DB_USER=book DB_PASSWORD=book lein migratus migrate
 
 (require '[next.jdbc.sql :as jdbc.sql])
 
+(require '[next.jdbc.prepare :as jdbc.prepare])
+
+(require '[next.jdbc.result-set :as jdbc.rs])
+
 (def ds (jdbc/get-datasource db))
 
 
@@ -2310,3 +2317,49 @@ DB_USER=book DB_PASSWORD=book lein migratus migrate
 (jdbc.sql/update! ds :users {:fname "Ivan"} ["fname = ?" "Test"])
 
 (jdbc.sql/query ds ["select * from users"])
+
+
+
+(defn ->json [^PGobject pg-obj]
+  (-> pg-obj
+      .getValue
+      (json/parse-string keyword)))
+
+
+(defn ->pg-object [data]
+  (doto (new PGobject)
+    (.setType "json")
+    (.setValue (json/generate-string data))))
+
+
+(extend-protocol jdbc.rs/ReadableColumn
+
+  PGobject
+
+  (read-column-by-label [v _]
+    (->json v))
+
+  (read-column-by-index [v _ _]
+    (->json v)))
+
+
+(extend-protocol jdbc.prepare/SettableParameter
+
+  clojure.lang.IPersistentCollection
+
+  (set-parameter [v ^java.sql.PreparedStatement pr-st idx]
+    (.setObject pr-st idx (->pg-object v))))
+
+(first (jdbc.sql/query ds ["select * from items"]))
+
+#:items{:id 1
+        :title "Cap"
+        :attrs {:size "XL" :color "red" :country "China"}
+        :tags nil}
+
+(jdbc.sql/insert! ds :items {:title "t-shirt" :attrs {:size "XXL" :brand "Abibas"}})
+
+#:items{:id 1
+        :title "t-shirt"
+        :attrs {:size "XXL" :brand "Abibas"}
+        :tags nil}
