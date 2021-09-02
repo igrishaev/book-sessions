@@ -2299,10 +2299,46 @@ DB_USER=book DB_PASSWORD=book lein migratus migrate
 
 (require '[next.jdbc.result-set :as jdbc.rs])
 
+(def db {:dbtype "postgresql" :dbname "test" ...})
+
 (def ds (jdbc/get-datasource db))
+
+(bean ds)
+
+{:class next.jdbc.connection$url_PLUS_etc$...
+ :connection #object[...PgConnection 0x352c5229...]
+ :loginTimeout 0}
 
 
 (jdbc/execute! ds ["select * from users"])
+
+(first (jdbc/execute! ds ["SELECT * FROM users"]))
+
+(first (jdbc/execute! ds ["SELECT * FROM users u, profiles p WHERE p.user_id = u.id"]))
+
+(first (jdbc/execute! ds
+                      ["SELECT * FROM users u, profiles p WHERE p.user_id = u.id"]
+                      {:builder-fn rs/as-unqualified-maps}))
+
+
+
+{:users/id 1
+ :users/lname "Petrov"
+ :users/fname "Ivan"
+ :users/age 30
+ :users/email "test@test.com"
+ :users/created_at #inst "2021-08-10T07:36:03.934029000-00:00"
+ :profiles/id 1
+ :profiles/user_id 1
+ :profiles/avatar "kitten.jpg"}
+
+
+#:users{:id 1
+        :fname "Ivan"
+        :lname "Petrov"
+        :email "test@test.com"
+        :age 30
+        :created_at #inst "2021-08-10T07:36:03.934029000-00:00"}
 
 
 (jdbc.sql/get-by-id ds :users 1)
@@ -2319,11 +2355,14 @@ DB_USER=book DB_PASSWORD=book lein migratus migrate
 (jdbc.sql/query ds ["select * from users"])
 
 
-
-(defn ->json [^PGobject pg-obj]
-  (-> pg-obj
-      .getValue
-      (json/parse-string keyword)))
+(defn pg->clj [^PGobject pg-obj]
+  (let [pg-val (.getValue pg-obj)
+        pg-type (.getType pg-obj)]
+    (case pg-type
+      ("json" "jsonb")
+      (json/parse-string pg-val keyword)
+      ;; else
+      pg-obj)))
 
 
 (defn ->pg-object [data]
@@ -2333,20 +2372,15 @@ DB_USER=book DB_PASSWORD=book lein migratus migrate
 
 
 (extend-protocol jdbc.rs/ReadableColumn
-
   PGobject
-
   (read-column-by-label [v _]
-    (->json v))
-
+    (pg->clj v))
   (read-column-by-index [v _ _]
-    (->json v)))
+    (pg->clj v)))
 
 
 (extend-protocol jdbc.prepare/SettableParameter
-
   clojure.lang.IPersistentCollection
-
   (set-parameter [v ^java.sql.PreparedStatement pr-st idx]
     (.setObject pr-st idx (->pg-object v))))
 
@@ -2354,18 +2388,36 @@ DB_USER=book DB_PASSWORD=book lein migratus migrate
 
 #:items{:id 1
         :title "Cap"
-        :attrs {:size "XL" :color "red" :country "China"}
-        :tags nil}
+        :attrs {:size "XL" :color "red" :country "China"}}
 
 (jdbc.sql/insert! ds :items {:title "t-shirt" :attrs {:size "XXL" :brand "Abibas"}})
 
 #:items{:id 1
         :title "t-shirt"
-        :attrs {:size "XXL" :brand "Abibas"}
-        :tags nil}
+        :attrs {:size "XXL" :brand "Abibas"}}
 
 
 (jdbc/with-transaction [tx ds]
   (let [{:items/keys [id]}
         (jdbc.sql/insert! tx :items {:title "t-shirt" :attrs {:size "XXL" :brand "Abibas"}})]
     (jdbc.sql/insert! tx :sales {:item_id id :ratio 0.66})))
+
+
+(jdbc/with-transaction [tx ds]
+  (let [{:items/keys [id]}
+        (jdbc.sql/insert! tx :items {...})]
+    (jdbc.sql/insert! tx :sales {:item_id id :ratio 0.66})))
+
+
+(;; ns ...
+  (:require
+   [next.jdbc :as jdbc]
+   [next.jdbc.sql :as jdbc.sql]
+   [next.jdbc.prepare :as jdbc.prepare]
+   [next.jdbc.result-set :as jdbc.rs]))
+
+
+(jdbc/execute!
+ ds
+ ["SELECT * FROM users ..."]
+ {:builder-fn jdbc.rs/as-unqualified-maps})
