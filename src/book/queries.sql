@@ -354,3 +354,16 @@ SELECT * FROM requests;
 ----+----------------+--------------
   1 | 24.198.249.0   | US
   2 | 187.33.237.120 | BR
+
+
+CREATE TABLE users(
+    id   serial primary key,
+    name text not null
+);
+
+
+CREATE TABLE profiles(
+    id      serial primary key,
+    user_id integer not null references users(id),
+    avatar  text
+);

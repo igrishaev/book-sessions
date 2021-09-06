@@ -2421,3 +2421,26 @@ DB_USER=book DB_PASSWORD=book lein migratus migrate
  ds
  ["SELECT * FROM users ..."]
  {:builder-fn jdbc.rs/as-unqualified-maps})
+
+
+(let [fname "Robert"
+      query (str "select * from users where fname = '" fname "'")]
+  (jdbc/query db query))
+
+;; select * from users where fname = 'Robert';
+
+
+(let [fname "Robert'; DROP TABLE users;--"]
+  ...)
+
+
+(def fname "Robert'; DROP TABLE users;--")
+
+
+(let [fname "Robert' UNION select * from users--"
+      query (str "select * from users where fname = '" fname "'")]
+  (jdbc/query db query))
+
+(def fname "Robert' UNION select * from users--")
+(def sql (str "select * from users where fname = '" fname "'"))
+(jdbc/query db sql)
