@@ -16,8 +16,8 @@
    [cheshire.core :as json]
    [hikari-cp.core :as cp]
    [mount.core :as mount :refer [defstate]]
-   ;; [clojure.java.jdbc :as jdbc]
-   [next.jdbc :as jdbc]
+   [clojure.java.jdbc :as jdbc]
+   ;; [next.jdbc :as jdbc]
    [next.jdbc.sql :as jdbc.sql]
    [next.jdbc.prepare :as jdbc.prepare]
    [next.jdbc.result-set :as jdbc.rs]
@@ -716,7 +716,13 @@ SET SESSION CHARACTERISTICS AS TRANSACTION ISOLATION LEVEL READ COMMITTED
 ;; https://www.howtogeek.com/255653/how-to-find-your-chrome-profile-folder-on-windows-mac-and-linux/
 
 
-(jdbc/query db "SELECT name FROM sqlite_master WHERE type = 'table'")
+_
+(jdbc/query db "SELECT name FROM sqlite_master WHERE type = 'table'"
+            {:as-arrays? true})
+
+(->> (jdbc/query db "SELECT name FROM sqlite_master WHERE type = 'table'")
+     (mapv :name))
+
 
 ({:name "meta"}
  {:name "urls"}
@@ -2444,3 +2450,15 @@ DB_USER=book DB_PASSWORD=book lein migratus migrate
 (def fname "Robert' UNION select * from users--")
 (def sql (str "select * from users where fname = '" fname "'"))
 (jdbc/query db sql)
+
+
+(extend-protocol jdbc/IResultSetReadColumn
+  org.postgresql.util.PGobject
+  (result-set-read-column [pg-obj _rsmeta _idx]
+    (pg->clojure pg-obj)))
+
+(result-set-read-column [pg-obj _rsmeta _idx]
+  (pg->clojure pg-obj))
+
+
+(jdbc/query db ["SELECT * FROM authors WHERE name = ?" "Ivan"])

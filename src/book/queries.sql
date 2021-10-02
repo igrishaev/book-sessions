@@ -367,3 +367,38 @@ CREATE TABLE profiles(
     user_id integer not null references users(id),
     avatar  text
 );
+
+
+SELECT
+  u.id     AS user_id,
+  u.fname  AS user_fname,
+  u.lname  AS user_lname,
+  p.avatar AS profile_avatar
+FROM users u
+JOIN profiles p ON p.user_id = u.id;
+
+
+SELECT
+  u.id     AS "user/id",
+  u.fname  AS "user/fname",
+  u.lname  AS "user/lname",
+  p.avatar AS "profile/avatar"
+FROM users u
+JOIN profiles p ON p.user_id = u.id;
+
+
+-- :name find-users :?
+SELECT * FROM users
+WHERE fname = :name
+  AND city = :city
+  AND year_birth = :year-birth
+LIMIT 10
+
+
+SELECT * FROM users
+WHERE fname = $1
+  AND city = $2
+LIMIT 10
+parameters: $1 = 'Ivan', $2 = 'Chita'
+
+(jdbc/query db ["SELECT * FROM authors WHERE name = ?" "Ivan"])
