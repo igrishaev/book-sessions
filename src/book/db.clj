@@ -1649,12 +1649,12 @@ JOIN posts p ON p.author_id = a.id;
  {:author/id 2
   :author/name "Ivan Rublev"
   :post/id 30
-  :post/title "Is mining still profitable?"
+  :post/title "Learning Clojure"
   :post/author-id 2}
  {:author/id 2
   :author/name "Ivan Rublev"
   :post/id 40
-  :post/title "Mining on Raspberry Pi"
+  :post/title "Working on my pet project"
   :post/author-id 2})
 
 
@@ -1682,12 +1682,12 @@ JOIN posts p ON p.author_id = a.id;
    {:author/id 2
     :author/name "Ivan Rublev"
     :post/id 30
-    :post/title "Is mining still profitable?"
+    :post/title "Learning Clojure"
     :post/author-id 2}
    {:author/id 2
     :author/name "Ivan Rublev"
     :post/id 40
-    :post/title "Mining on Raspberry Pi"
+    :post/title "Working on my pet project"
     :post/author-id 2}))
 
 
@@ -1717,8 +1717,8 @@ JOIN posts p ON p.author_id = a.id;
                      20 #:post{:id 20 :title "Thoughts on LISP" :author-id 1}}}
   2 #:author{:id 2
              :name "Ivan Rublev"
-             :posts {30 #:post{:id 30 :title "Is mining still profitable?" :author-id 2}
-                     40 #:post{:id 40 :title "Mining on Raspberry Pi" :author-id 2}}}}}
+             :posts {30 #:post{:id 30 :title "Learning Clojure" :author-id 2}
+                     40 #:post{:id 40 :title "Working on my pet project" :author-id 2}}}}}
 
 
 (reduce
@@ -1741,8 +1741,8 @@ JOIN posts p ON p.author_id = a.id;
                      20 #:post{:id 20 :title "Thoughts on LISP" :author-id 1}}}
   2 #:author{:id 2
              :name "Ivan Rublev"
-             :posts {30 #:post{:id 30 :title "Is mining still profitable?" :author-id 2}
-                     40 #:post{:id 40 :title "Mining on Raspberry Pi" :author-id 2}}}}}
+             :posts {30 #:post{:id 30 :title "Learning Clojure" :author-id 2}
+                     40 #:post{:id 40 :title "Working on my pet project" :author-id 2}}}}}
 
 
 (jdbc/query db "SELECT
@@ -1776,12 +1776,12 @@ LEFT JOIN comments c ON c.post_id = p.id;
     :post/title "Introduction to Python"
     :post/author-id 1
     :comment/id 200
-    :comment/text "Nice reading it was useful."
+    :comment/text "Nice reading, it was useful."
     :comment/post-id 10}
    {:author/id 2
     :author/name "Ivan Rublev"
     :post/id 30
-    :post/title "Is mining still profitable?"
+    :post/title "Learning Clojure"
     :post/author-id 2
     :comment/id 300
     :comment/text "TL;DR: you must learn lisp"
@@ -1797,7 +1797,7 @@ LEFT JOIN comments c ON c.post_id = p.id;
    {:author/id 2
     :author/name "Ivan Rublev"
     :post/id 40
-    :post/title "Mining on Raspberry Pi"
+    :post/title "Working on my pet project"
     :post/author-id 2
     :comment/id nil
     :comment/text nil
@@ -1839,18 +1839,18 @@ LEFT JOIN comments c ON c.post_id = p.id;
                                                         :text "Thanks for sharing this!"
                                                         :post-id 10}
                                           200 #:comment{:id 200
-                                                        :text "Nice reading it was useful."
+                                                        :text "Nice reading, it was useful."
                                                         :post-id 10}}}
                      20 #:post{:id 20 :title "Thoughts on LISP" :author-id 1}}}
   2 #:author{:id 2
              :name "Ivan Rublev"
              :posts {30 #:post{:id 30
-                               :title "Is mining still profitable?"
+                               :title "Learning Clojure"
                                :author-id 2
                                :comments {300 #:comment{:id 300
                                                         :text "TL;DR: you must learn lisp"
                                                         :post-id 30}}}
-                     40 #:post{:id 40 :title "Mining on Raspberry Pi" :author-id 2}}}}}
+                     40 #:post{:id 40 :title "Working on my pet project" :author-id 2}}}}}
 
 
 (def enumerate
@@ -1926,7 +1926,7 @@ LEFT JOIN comments c ON c.post_id = p.id;
                                                :comment/post-id 10}
                                           200 {:comment/id 200
                                                :db/index 1
-                                               :comment/text "Nice reading it was useful."
+                                               :comment/text "Nice reading, it was useful."
                                                :comment/post-id 10}}}
                       20 {:post/id 20
                           :db/index 3
@@ -1937,7 +1937,7 @@ LEFT JOIN comments c ON c.post_id = p.id;
        :author/name "Ivan Rublev"
        :author/posts {30 {:post/id 30
                           :db/index 2
-                          :post/title "Is mining still profitable?"
+                          :post/title "Learning Clojure"
                           :post/author-id 2
                           :post/comments {300 {:comment/id 300
                                                :db/index 2
@@ -1945,7 +1945,7 @@ LEFT JOIN comments c ON c.post_id = p.id;
                                                :comment/post-id 30}}}
                       40 {:post/id 40
                           :db/index 4
-                          :post/title "Mining on Raspberry Pi"
+                          :post/title "Working on my pet project"
                           :post/author-id 2}}}}})
 
 
@@ -1988,7 +1988,7 @@ LEFT JOIN comments c ON c.post_id = p.id;
       :comment/post-id 10}
      {:comment/id 200
       :db/index 1
-      :comment/text "Nice reading it was useful."
+      :comment/text "Nice reading, it was useful."
       :comment/post-id 10}]}
    {:post/id 20
     :db/index 3
@@ -2000,7 +2000,7 @@ LEFT JOIN comments c ON c.post_id = p.id;
   :author/posts
   [{:post/id 30
     :db/index 2
-    :post/title "Is mining still profitable?"
+    :post/title "Learning Clojure"
     :post/author-id 2
     :post/comments
     [{:comment/id 300
@@ -2009,7 +2009,7 @@ LEFT JOIN comments c ON c.post_id = p.id;
       :comment/post-id 30}]}
    {:post/id 40
     :db/index 4
-    :post/title "Mining on Raspberry Pi"
+    :post/title "Working on my pet project"
     :post/author-id 2}]}]
 
 
@@ -2044,7 +2044,7 @@ GROUP BY a.id;
                          :author-id 1
                          :comments [{:id 100 :text "Thanks for sharing this!" :post_id 10}
                                     {:id 200
-                                     :text "Nice reading it was useful."
+                                     :text "Nice reading, it was useful."
                                      :post_id 10}]}
                   #:post{:id 20
                          :title "Thoughts on LISP"
@@ -2053,11 +2053,11 @@ GROUP BY a.id;
  #:author{:id 2
           :name "Ivan Rublev"
           :posts [#:post{:id 30
-                         :title "Is mining still profitable?"
+                         :title "Learning Clojure"
                          :author-id 2
                          :comments [{:id 300 :text "TL;DR: you must learn lisp" :post_id 30}]}
                   #:post{:id 40
-                         :title "Mining on Raspberry Pi"
+                         :title "Working on my pet project"
                          :author-id 2
                          :comments nil}]}]
 
