@@ -2462,3 +2462,20 @@ DB_USER=book DB_PASSWORD=book lein migratus migrate
 
 
 (jdbc/query db ["SELECT * FROM authors WHERE name = ?" "Ivan"])
+
+
+(defn ->pg-object [data]
+  (doto (new PGobject)
+    (.setType "json")
+    (.setValue (json/generate-string data))))
+
+
+(->pg-object nil)
+
+#object[org.postgresql.util.PGobject 0x7c24e232 "null"]
+
+(defn ->pg-object [data]
+  (when (some? data)
+    (doto (new PGobject)
+      (.setType "json")
+      (.setValue (json/generate-string data)))))
