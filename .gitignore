@@ -12,3 +12,7 @@ pom.xml.asc
 logs
 PGDATA
 jars
+
+repl/.cljs_node_repl
+repl/.cpcache
+repl/out

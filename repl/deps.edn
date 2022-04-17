@@ -1,0 +1,9 @@
+{
+ :aliases
+ {:nrepl
+  {:extra-deps
+   {nrepl/nrepl {:mvn/version "0.8.3"}
+    cider/piggieback {:mvn/version "0.5.3"}}}}
+
+ :deps
+ {org.clojure/clojurescript {:mvn/version "1.10.758"}}}
