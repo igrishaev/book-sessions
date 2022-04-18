@@ -28,3 +28,5 @@ const fs = require("fs")
 
 clj -M -m cljs.main --repl-env node
 clj -M -m cljs.main --repl-env browser
+
+;; Starting server via /usr/local/bin/clojure -Sdeps '{:deps {nrepl/nrepl {:mvn/version "0.9.0"} cider/cider-nrepl {:mvn/version "0.28.3"} cider/piggieback {:mvn/version "0.5.2"}} :aliases {:cider/nrepl {:main-opts ["-m" "nrepl.cmdline" "--middleware" "[cider.nrepl/cider-middleware,cider.piggieback/wrap-cljs-repl]"]}}}' -M:cider/nrepl
