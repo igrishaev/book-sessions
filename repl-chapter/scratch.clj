@@ -146,3 +146,115 @@
    :as :json
    :coerce :always
    :throw-exceptions? false}))
+
+
+;; https://v2.jokeapi.dev/joke/Programming?type=twopart
+
+;; https://v2.jokeapi.dev/joke/Dunno
+
+;; https://v2.jokeapi.dev/joke/Programming?contains=java
+
+{
+    "error": false,
+    "category": "Programming",
+    "type": "single",
+    "joke": "Java is like Alzheimer's, it starts off slow, but eventually, your memory is gone.",
+    "flags": {
+        "nsfw": false,
+        "religious": false,
+        "political": false,
+        "racist": false,
+        "sexist": false,
+        "explicit": false
+    },
+    "id": 27,
+    "safe": false,
+    "lang": "en"
+ }
+
+
+;; https://v2.jokeapi.dev/joke/Programming?contains=clojure
+
+{
+    "error": true,
+    "internalError": false,
+    "code": 106,
+    "message": "No matching joke found",
+    "causedBy": [
+        "No jokes were found that match your provided filter(s)."
+    ],
+    "additionalInfo": "Error while finalizing joke filtering: No jokes were found that match your provided filter(s).",
+    "timestamp": 1651044225373
+ }
+
+
+(def request
+  {:url "https://v2.jokeapi.dev/joke/Programming"
+   :method :get
+   :as :json})
+
+(def response
+  (client/request request))
+
+(def data
+  (:body response))
+
+(def joke
+  (let [{:keys [setup
+                delivery]} data]
+    (format "%s %s" setup delivery)))
+
+;; ?contains=clojure
+
+
+(def request
+  {:url "https://v2.jokeapi.dev/joke/Programming"
+   :method :get
+   :query-params {:contains "javascript"}
+   :as :json})
+
+(def response
+  (client/request request))
+
+
+(defn get-joke [lang]
+  (let [request
+        {:url "https://v2.jokeapi.dev/joke/Programming"
+         :method :get
+         :query-params {:contains lang}
+         :as :json}
+
+        response
+        (client/request request)
+
+        {:keys [body]}
+        response
+
+        {:keys [setup delivery]}
+        body]
+
+    (format "%s %s" setup delivery)))
+
+(get-joke "python")
+
+(get-joke "lisp")
+
+
+(def data
+  (-> {:url "https://v2.jokeapi.dev/joke/Programming"
+       :method :get
+       :query-params {:contains "clojure"}
+       :as :json}
+      (client/request)
+      (:body)))
+
+
+(-> {:url "https://v2.jokeapi.dev/joke/Programming"
+     :method :get
+     :query-params {:contains "python"
+                    :type :single}
+     :as :json}
+    (client/request)
+    (:body))
+
+(cheshire.core/generate-stream data (io/writer "joke-err.json") {:pretty true})

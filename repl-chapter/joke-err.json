@@ -1,0 +1,9 @@
+{
+  "error" : true,
+  "internalError" : false,
+  "code" : 106,
+  "message" : "No matching joke found",
+  "causedBy" : [ "No jokes were found that match your provided filter(s)." ],
+  "additionalInfo" : "Error while finalizing joke filtering: No jokes were found that match your provided filter(s).",
+  "timestamp" : 1651054623055
+}
