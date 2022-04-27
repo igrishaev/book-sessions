@@ -1,0 +1,3 @@
+# -*- restclient -*-
+
+GET https://v2.jokeapi.dev/joke/Programming
