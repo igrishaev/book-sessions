@@ -30,3 +30,24 @@ clj -M -m cljs.main --repl-env node
 clj -M -m cljs.main --repl-env browser
 
 ;; Starting server via /usr/local/bin/clojure -Sdeps '{:deps {nrepl/nrepl {:mvn/version "0.9.0"} cider/cider-nrepl {:mvn/version "0.28.3"} cider/piggieback {:mvn/version "0.5.2"}} :aliases {:cider/nrepl {:main-opts ["-m" "nrepl.cmdline" "--middleware" "[cider.nrepl/cider-middleware,cider.piggieback/wrap-cljs-repl]"]}}}' -M:cider/nrepl
+
+
+// Compiled by ClojureScript 1.10.758 {}
+goog.provide('foo');
+goog.require('cljs.core');
+foo.add = (function foo$add(a,b){
+return (a + b);
+});
+
+//# sourceMappingURL=foo.js.map
+
+
+{:aliases
+ {:rebl
+  {:extra-deps {com.cognitect/rebl          {:mvn/version "0.9.245"}
+                org.openjfx/javafx-fxml     {:mvn/version "15-ea+6"}
+                org.openjfx/javafx-controls {:mvn/version "15-ea+6"}
+                org.openjfx/javafx-swing    {:mvn/version "15-ea+6"}
+                org.openjfx/javafx-base     {:mvn/version "15-ea+6"}
+                org.openjfx/javafx-web      {:mvn/version "15-ea+6"}}
+   :main-opts ["-m" "cognitect.rebl"]}}}
