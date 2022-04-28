@@ -258,3 +258,9 @@
     (:body))
 
 (cheshire.core/generate-stream data (io/writer "joke-err.json") {:pretty true})
+
+
+(read-string "(foo bar)")
+
+(require '[clojure.string :as str])
+(str/split "1 2 3" #"\s")
