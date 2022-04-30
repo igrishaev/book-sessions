@@ -1,4 +1,3 @@
-
 (clojure.inspector/inspect-tree )
 
 
@@ -264,3 +263,125 @@
 
 (require '[clojure.string :as str])
 (str/split "1 2 3" #"\s")
+
+
+(into {} (System/getenv))
+
+*print-level*
+*print-length*
+
+(in-ns 'repl-test)
+(clojure.core/refer-clojure)
+(+ 1 2)
+
+18:12=> ...
+18:14=> ...
+
+(with-local-vars [foo 1]
+  (var-set foo 42)
+  (eval `(let [~'foo ~(var-get foo)]
+           ~'foo)))
+
+
+(eval
+ '(let [*r 6]
+    (* 3 *r)))
+
+(/ 1 0)
+;; ... Stacktrace ...
+
+(ex-message e)
+"Divide by zero"
+
+(try (/ 1 0) (catch Exception e (ex-message e)))
+
+(defn add [a b]
+  (+ a b))
+
+
+(defn add [a b]
+..(let [c (+ a b)]
+....(* c 3)))
+
+
+(defn make-stack []
+  (let [-stack (atom nil)]
+    (fn stack
+      ([cmd]
+       (case cmd
+         :count (count @-stack)
+         :peek (first @-stack)
+         :pop (let [item (first @-stack)]
+                (swap! -stack rest)
+                item)))
+      ([cmd arg]
+       (case cmd
+         :push
+         (swap! -stack conj arg))))))
+
+
+(def stack (make-stack))
+
+(stack :get)
+(stack :push 1)
+(stack :push 2)
+(stack :push 3)
+(stack :get)
+(stack :pop)
+(stack :pop)
+(stack :pop)
+
+
+(defn balanced? [stack]
+  (zero? (stack :count)))
+
+(defn print-indent [stack]
+  (dotimes [_ (* (stack :count) 2)]
+    (print ".")))
+
+
+(def brace-pairs
+  {\( \)
+   \[ \]
+   \{ \}})
+
+(def brace-oppos
+  (into {} (for [[k v] brace-pairs]
+             [v k])))
+
+
+(defn consume-line [stack line]
+  (doseq [char line]
+    (cond
+      (contains? brace-pairs char)
+      (stack :push char)
+
+      (contains? brace-oppos char)
+      (let [char-oppos
+            (get brace-oppos char)]
+        (when-not (= char-oppos (stack :pop))
+          (throw (ex-info "aaa")))))))
+
+(defn multi-input []
+  (let [stack (make-stack)]
+    (print-indent stack)
+    (flush)
+    (loop [result ""]
+      (let [line (read-line)
+            result (str result " " line)]
+        (consume-line stack line)
+        (if (balanced? stack)
+          result
+          (recur result))))))
+
+
+(def s (make-stack))
+
+(s :push 1)
+(s :push 2)
+(s :push 3)
+
+
+(consume-line s "aaaa")
+
+(consume-line s "((aa")
