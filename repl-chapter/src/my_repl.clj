@@ -212,13 +212,29 @@
        (case cmd
          :count (count @-stack)
          :empty? (zero? (count @-stack))
-         :pop (let [item (first @-stack)]
-                (swap! -stack rest)
-                item)))
+         :pop (if (empty? @-stack)
+                (throw (new Exception "Stack is empty!"))
+                (let [item (first @-stack)]
+                  (swap! -stack rest)
+                  item))))
       ([cmd arg]
        (case cmd
          :push
          (swap! -stack conj arg))))))
+
+
+(def s (make-stack))
+
+(s :count)  ;; 0
+(s :empty?) ;; true
+(s :push 1) ;; (1)
+(s :push 2) ;; (2 1)
+(s :push 3) ;; (3 2 1)
+(s :count)  ;; 3
+(s :pop)    ;; 3
+(s :pop)    ;; 2
+(s :pop)    ;; 1
+(s :empty?) ;; true
 
 
 ;; (stack :get)
@@ -257,7 +273,7 @@
         (when-not (= char-lead char-oppos)
           (throw
            (new Exception
-                (format "Unbalanced expressiong: %s...%s"
+                (format "Unbalanced expression: %s...%s"
                         char-lead char))))))))
 
 (defn multi-input []
@@ -272,6 +288,14 @@
           result
           (recur result))))))
 
+
+(defn repl []
+  (loop []
+    (let [input (multi-input)
+          expr (read-string input)
+          result (eval expr)]
+      (println result)
+      (recur))))
 
 
 (defn -main [& args]

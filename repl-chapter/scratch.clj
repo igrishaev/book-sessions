@@ -385,3 +385,23 @@
 (consume-line s "aaaa")
 
 (consume-line s "((aa")
+
+
+(+ 1 2 3
+..3 4 5)
+18
+(assoc-in {:foo 1
+....:bar 2
+....:baz 3
+....}
+..[:test :hello]
+..3
+..)
+{:foo 1, :bar 2, :baz 3, :test {:hello 3}}
+
+
+:pop (if (empty? @-stack)
+       (throw (new Exception "Stack is empty!"))
+       (let [item (first @-stack)]
+         (swap! -stack rest)
+         item))
