@@ -405,3 +405,18 @@
        (let [item (first @-stack)]
          (swap! -stack rest)
          item))
+
+
+(let [a 1 b 2] (my-repl/repl) (+ a b))
+
+(let [a 1 b 2]
+  (my-repl/repl)
+  (+ a b))
+
+(defn add [a b]
+  (my-repl/repl)
+  (+ a b))
+
+(add 1 2)
+
+(defn add [a b] (my-repl/repl) (+ a b))

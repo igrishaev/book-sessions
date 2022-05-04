@@ -18,6 +18,8 @@
 ;; (-main)
 
 
+;; Exit
+
 #_
 (defn repl []
   (loop []
@@ -289,6 +291,7 @@
           (recur result))))))
 
 
+#_
 (defn repl []
   (loop []
     (let [input (multi-input)
@@ -296,6 +299,50 @@
           result (eval expr)]
       (println result)
       (recur))))
+
+
+(def ^:dynamic *r nil)
+(def ^:dynamic *e nil)
+
+#_
+(defn repl []
+  (binding [*r nil
+            *e nil]
+    (loop []
+      (let [input (read-line)
+            expr (read-string input)
+            result
+            (case expr
+              *e *e
+              *r *r
+              (eval
+               `(let [~'*r *r
+                      ~'*e *e]
+                  ~expr)))]
+        (set! *r result)
+        (println result)
+        (recur)))))
+
+
+(defn repl []
+  (binding [*r nil
+            *e nil]
+    (loop []
+      (let [input (read-line)
+            expr (read-string input)
+            result
+            (case expr
+              :repl/exit :repl/exit
+              *e *e
+              *r *r
+              (eval
+               `(let [~'*r *r
+                      ~'*e *e]
+                  ~expr)))]
+        (when-not (= result :repl/exit)
+          (set! *r result)
+          (println result)
+          (recur))))))
 
 
 (defn -main [& args]
