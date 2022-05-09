@@ -1,3 +1,7 @@
+(ns scratch
+  (:require [clojure.walk :as walk]))
+
+#_
 (clojure.inspector/inspect-tree )
 
 
@@ -270,9 +274,9 @@
 *print-level*
 *print-length*
 
-(in-ns 'repl-test)
-(clojure.core/refer-clojure)
-(+ 1 2)
+;; (in-ns 'repl-test)
+;; (clojure.core/refer-clojure)
+;; (+ 1 2)
 
 18:12=> ...
 18:14=> ...
@@ -432,14 +436,14 @@
   (+ a b))
 
 
-(ns test1)
+;; (ns test1)
 
-(defn add [a b]
-  (+ a b))
+;; (defn add [a b]
+;;   (+ a b))
 
-(ns test2)
+;; (ns test2)
 
-(add 1 2)
+;; (add 1 2)
 
 
 {

@@ -16,8 +16,8 @@
 
                  ]
 
-  :repl-options {:port 9911
-                 :init-ns my-repl
+  :repl-options {;; :port 9911
+                 ;; :init-ns my-repl
                  :prompt (fn [the-ns]
                            (format "[%s] >> " the-ns))}
 
