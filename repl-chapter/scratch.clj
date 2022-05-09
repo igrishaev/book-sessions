@@ -420,3 +420,87 @@
 (add 1 2)
 
 (defn add [a b] (my-repl/repl) (+ a b))
+
+
+(defn add [a b]
+  (+ a b))
+
+(+ 1 2)
+
+(let [a 1 b 2]
+  (println "inner form")
+  (+ a b))
+
+
+(ns test1)
+
+(defn add [a b]
+  (+ a b))
+
+(ns test2)
+
+(add 1 2)
+
+
+{
+ :user {:dependencies [[nrepl/nrepl "0.9.0"]]}
+ }
+
+
+(defn decode-bytes [data]
+  (clojure.walk/postwalk (fn [x]
+                           (if (bytes? x)
+                             (new String ^bytes x "UTF-8")
+                             x))
+                         data))
+
+(->
+ ;; "d2:id4:12702:ns10:bogus.core7:session36:5cabb9bd-dcfe-4dc5-855d-978504d32d1ee"
+ ;; "d2:id4:12707:session36:5cabb9bd-dcfe-4dc5-855d-978504d32d1e5:value1:6e"
+ ;; "d18:changed-namespacesde2:id4:12709:repl-type3:clj7:session36:5cabb9bd-dcfe-4dc5-855d-978504d32d1e6:statusl5:stateee"
+ ;; "d18:changed-namespacesde2:id4:13349:repl-type3:clj7:session36:5cabb9bd-dcfe-4dc5-855d-978504d32d1e6:statusl5:stateee"
+ ;; "d2:id4:13347:session36:5cabb9bd-dcfe-4dc5-855d-978504d32d1e6:statusl4:doneee"
+ "d9:gen-inputle2:id4:13507:resultsd15:bogus.core-testd20:test-tag-reader-whenld7:contextle5:indexi0e7:message0:2:ns15:bogus.core-test4:type4:pass3:var20:test-tag-reader-wheneeee7:session36:5cabb9bd-dcfe-4dc5-855d-978504d32d1e7:summaryd5:errori0e4:faili0e2:nsi1e4:passi1e4:testi1e3:vari1ee10:testing-ns15:bogus.core-teste"
+ ;; "d6:columni1e4:file52:file:/Users/ivan/work/bogus/test/bogus/core_test.clj2:id4:13534:linei87e4:name20:test-tag-reader-when2:ns15:bogus.core-test7:session36:5cabb9bd-dcfe-4dc5-855d-978504d32d1e6:statusl4:doneee"
+ (.getBytes "UTF-8")
+ (java.io.ByteArrayInputStream.)
+ (java.io.PushbackInputStream.)
+ (nrepl.bencode/read-bencode)
+ (decode-bytes))
+
+
+(defn handler [{:as message
+                :keys [transport op code]}]
+  (let [value (eval ...)]
+    (t/send transport {:value value})))
+
+
+d2:id4:13342:ns10:bogus.core7:session36:5cabb9bd-dcfe-4dc5-855d-978504d32d1e5:value1:6e
+d2:id4:13342:ns10:bogus.core7:session36:5cabb9bd-dcfe-4dc5-855d-978504d32d1e5:value2:10e
+d2:id4:13347:session36:5cabb9bd-dcfe-4dc5-855d-978504d32d1e6:statusl4:doneee
+
+d6:columni1e4:file52:file:/Users/ivan/work/bogus/test/bogus/core_test.clj2:id4:13534:linei87e4:name20:test-tag-reader-when2:ns15:bogus.core-test7:session36:5cabb9bd-dcfe-4dc5-855d-978504d32d1e6:statusl4:doneee
+
+{:id 1334 :session "..." :value 6}
+{:id 1334 :session "..." :value 10}
+{:id 1334 :session "..." :status "done"}
+
+
+d9:gen-inputle2:id4:13507:resultsd15:bogus.core-testd20:test-tag-reader-whenld7:contextle5:indexi0e7:message0:2:ns15:bogus.core-test4:type4:pass3:var20:test-tag-reader-wheneeee7:session36:5cabb9bd-dcfe-4dc5-855d-978504d32d1e7:summaryd5:errori0e4:faili0e2:nsi1e4:passi1e4:testi1e3:vari1ee10:testing-ns15:bogus.core-teste
+
+{"gen-input" [],
+ "id" "1350",
+ "results"
+ {"bogus.core-test"
+  {"test-tag-reader-when"
+   [{"context" [],
+     "index" 0,
+     "message" "",
+     "ns" "bogus.core-test",
+     "type" "pass",
+     "var" "test-tag-reader-when"}]}},
+ "session" "5cabb9bd-dcfe-4dc5-855d-978504d32d1e",
+ "summary" {"error" 0, "fail" 0, "ns" 1, "pass" 1, "test" 1, "var" 1},
+ "testing-ns" "bogus.core-test"}
+
+(op test ns bogus.core-test tests (test-tag-reader-when) load? true)

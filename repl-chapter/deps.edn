@@ -1,3 +1,13 @@
-{:deps
- {clj-http/clj-http {:mvn/version "3.9.1"}
-  cheshire/cheshire {:mvn/version "5.8.1"}}}
+{:aliases {}
+
+
+ #_
+ {:nrepl
+  {:extra-deps
+   {nrepl/nrepl {:mvn/version "0.9.0"}}
+   :main-opts ["-m" "nrepl.cmdline"]}}}
+
+
+;;  :deps
+;; {clj-http/clj-http {:mvn/version "3.9.1"}
+;;  cheshire/cheshire {:mvn/version "5.8.1"}}
