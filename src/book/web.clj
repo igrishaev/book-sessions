@@ -384,3 +384,10 @@
 
 #_
 (def server (run-jetty app* {:port 8088 :join? false}))
+
+(require '[ring.adapter.jetty :refer [run-jetty]])
+
+(def server (run-jetty
+             (fn [_]
+               {:status 200 :body "OK"})
+             {:port 4000 :join? false}))

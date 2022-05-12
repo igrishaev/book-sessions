@@ -452,11 +452,12 @@
 
 
 (defn decode-bytes [data]
-  (clojure.walk/postwalk (fn [x]
-                           (if (bytes? x)
-                             (new String ^bytes x "UTF-8")
-                             x))
-                         data))
+  (clojure.walk/postwalk
+   (fn [x]
+     (if (bytes? x)
+       (new String ^bytes x "UTF-8")
+       x))
+   data))
 
 (->
  ;; "d2:id4:12702:ns10:bogus.core7:session36:5cabb9bd-dcfe-4dc5-855d-978504d32d1ee"
@@ -508,3 +509,132 @@ d9:gen-inputle2:id4:13507:resultsd15:bogus.core-testd20:test-tag-reader-whenld7:
  "testing-ns" "bogus.core-test"}
 
 (op test ns bogus.core-test tests (test-tag-reader-when) load? true)
+
+
+(defn handle-classpath
+  [handler {:as msg :keys [op transport]}]
+  (if (= "classpath" op)
+    (let [paths (get-classpath ...)]
+      (t/send transport {... :classpath paths}))
+    (handler msg)))
+
+
+(require '[nrepl.core :as nrepl])
+
+(def conn (nrepl/connect :port 54780))
+(def client (nrepl/client conn 1000))
+
+(nrepl/message client {:op "eval" :code "(+ 1 2 3)"})
+
+({:id "1ac6cbc4-74d4-4b3a-bf3f-97dcf7ca07c2"
+  :ns "my-repl"
+  :session "fec9d5a3-3c22-4640-b089-c1cecc041068"
+  :value "6"}
+ {:id "1ac6cbc4-74d4-4b3a-bf3f-97dcf7ca07c2"
+  :session "fec9d5a3-3c22-4640-b089-c1cecc041068"
+  :status ["done"]})
+
+(nrepl/message client {:op "eval" :code "(/ 0 0)"})
+
+({:err "Execution error (ArithmeticException) at my-repl/eval5984 (form-init9833672407535844907.clj:1).\nDivide by zero\n"
+  :id "a8444b3c-7b54-4e04-9b48-04b8bda170f4"
+  :session "17d02cb6-45ff-464c-a01c-c87da89cdfa7"}
+ {:ex "class java.lang.ArithmeticException"
+  :id "a8444b3c-7b54-4e04-9b48-04b8bda170f4"
+  :root-ex "class java.lang.ArithmeticException"
+  :session "17d02cb6-45ff-464c-a01c-c87da89cdfa7"
+  :status ["eval-error"]}
+ {:id "a8444b3c-7b54-4e04-9b48-04b8bda170f4"
+  :session "17d02cb6-45ff-464c-a01c-c87da89cdfa7" :status ["done"]})
+
+(nrepl/message client {:op "lookup" :sym "+"})
+
+({:id "e66092b8-c6aa-49a9-9cff-cc3557e421c6",
+  :info {:protocol "",
+         :added "1.2",
+         :ns "clojure.core",
+         :name "+",
+         :file "jar:file:/Users/ivan/.m2/repository/org/clojure/clojure/1.10.0/clojure-1.10.0.jar!/clojure/core.clj",
+         :arglists-str "([] [x] [x y] [x y & more])",
+         :column 1,
+         :line 984,
+         :arglists "([] [x] [x y] [x y & more])",
+         :doc "Returns the sum of nums. (+) returns 0. Does not auto-promote\n  longs, will throw on overflow. See also: +'"},
+  :session "63a4ba3f-6a19-4597-919d-3136ebbfa1cb",
+  :status ["done"]})
+
+(nrepl/message client {:op "completions" :prefix "ex-"})
+
+
+({:completions
+  [{:candidate "ex-cause", :type "function"}
+   {:candidate "ex-data", :type "function"}
+   {:candidate "ex-info", :type "function"}
+   {:candidate "ex-message", :type "function"}],
+  :id "e6f3b77b-5689-484e-8743-76f9682caaa7",
+  :session "f15bb73c-e3f9-49c8-8aa5-0ebc592d038d",
+  :status ["done"]})
+
+
+(nrepl/message client {:op "eval" :code "
+(defn add [a b]
+  (+ a b))
+"})
+
+
+(with-open [conn (nrepl/connect :port 59258)]
+  (-> (nrepl/client conn 1000)          ; message receive timeout required
+      (nrepl/message {:op "eval" :code "(+ 2 3)"})
+      nrepl/response-values))
+
+
+(nrepl/message client {:op "completions" :prefix "add"})
+
+
+(nrepl/message client {:op "load-file"
+                       :file (slurp "src/sample.clj")})
+
+
+{:id "92a66b15-d5e4-4649-bcfb-98a05b9aee5b"
+ :session "97ec6c4b-28ee-4402-87e3-43f3275a7430"
+ :value "#'sample/multiply"}
+
+{:id "92a66b15-d5e4-4649-bcfb-98a05b9aee5b"
+ :session "97ec6c4b-28ee-4402-87e3-43f3275a7430"
+ :status ["done"]}
+
+
+(nrepl/message client
+               {:op "close"
+                :session "43fb86a8-0680-44ed-b3e9-dd85150fef35"})
+
+
+(defn decode-bytes [data]
+  (clojure.walk/postwalk
+   (fn [x]
+     (if (bytes? x)
+       (new String ^bytes x "UTF-8")
+       x))
+   data))
+
+
+
+(->
+ ;; "d4:code9:(+ 1 2 3)2:id36:c88f2dcb-d502-4c90-9529-2dd843bc56d02:op4:evale"
+ ;; "d2:id36:c88f2dcb-d502-4c90-9529-2dd843bc56d02:ns7:my-repl7:session36:1fdd9575-881e-4be1-80ca-dd8e64bdff185:value1:6e"
+ (.getBytes "UTF-8")
+ (java.io.ByteArrayInputStream.)
+ (java.io.PushbackInputStream.)
+ (nrepl.bencode/read-bencode)
+ (decode-bytes))
+
+
+(defn bendecode [^String payload]
+  (-> payload
+      (.getBytes "UTF-8")
+      (java.io.ByteArrayInputStream.)
+      (java.io.PushbackInputStream.)
+      (nrepl.bencode/read-bencode)
+      (decode-bytes)))
+
+(bendecode "d4:code9:(+ 1 2 3)2:id36:c88f2dcb-d502-4c90-9529-2dd843bc56d02:op4:evale")
