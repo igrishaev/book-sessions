@@ -19,7 +19,9 @@
   :repl-options {;; :port 9911
                  ;; :init-ns my-repl
                  :prompt (fn [the-ns]
-                           (format "[%s] >> " the-ns))}
+                           (format "[%s] >> " the-ns))
+                 ;; :transport nrepl.transport/edn
+                 }
 
   :target-path "target/%s"
 

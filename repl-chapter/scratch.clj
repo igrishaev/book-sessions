@@ -521,7 +521,26 @@ d9:gen-inputle2:id4:13507:resultsd15:bogus.core-testd20:test-tag-reader-whenld7:
 
 (require '[nrepl.core :as nrepl])
 
+(require '[nrepl.transport :as transport])
+
+
 (def conn (nrepl/connect :port 54780))
+
+(def conn (nrepl/connect
+           :port 61093
+           :transport-fn transport/edn))
+
+
+{:op "eval"
+ :code "(+ 1 2 3)"
+ :id "f4fcb617-74a7-4be8-978a-6f788787d360"}
+
+{:id "f4fcb617-74a7-4be8-978a-6f788787d360"
+ :session "29e04d1a-06b2-463b-8b5b-878424958780"
+ :ns "my-repl"
+ :value "6"}
+
+
 (def client (nrepl/client conn 1000))
 
 (nrepl/message client {:op "eval" :code "(+ 1 2 3)"})
@@ -638,3 +657,152 @@ d9:gen-inputle2:id4:13507:resultsd15:bogus.core-testd20:test-tag-reader-whenld7:
       (decode-bytes)))
 
 (bendecode "d4:code9:(+ 1 2 3)2:id36:c88f2dcb-d502-4c90-9529-2dd843bc56d02:op4:evale")
+
+
+
+(defn write-bencode [data]
+  (let [stream
+        (new java.io.ByteArrayOutputStream)]
+    (nrepl.bencode/write-bencode stream data)
+    (-> stream
+        .toByteArray
+        (String.))))
+
+
+(write-bencode
+ {:title "1984"
+  :year 1948
+  :tags ["novel" "fiction" "dystopia"]
+  :author {:fname "George" :lname "Orwell"}})
+
+
+
+{:title "1984"
+ :year 1948
+ :tags ["novel" "fiction" "dystopia"]
+ :author {:fname "George" :lname "Orwell"}}
+
+
+
+/usr/local/bin/lein
+  update-in :dependencies conj [nrepl/nrepl "0.9.0"]
+  update-in :plugins conj [cider/cider-nrepl "0.28.3"]
+  update-in :plugins conj [mx.cider/enrich-classpath "1.9.0"]
+  update-in :middleware conj cider.enrich-classpath/middleware
+  repl :headless :host localhost
+
+
+(let [{:keys [name email]} (get-some-map ...)]
+  (format "%s, %s" name email))
+
+
+(let [name "John"
+      email "test@test.com"]
+  (format "%s <%s>" name email))
+
+(let [id (java.util.UUID/randomUUID)
+      name "John"]
+  {:id id
+   :name name})
+
+
+(defn add [a b]
+  (+ a b))
+
+
+
+(defmacro foo [])
+
+(def user-description
+  (let [name "John"
+        email "test@test.com"]
+    (format "%s <%s>" name email)))
+
+
+
+
+
+(defn ->fahr [cel]
+  (+ (* cel 1.8) 32))
+
+#_
+(comment
+  (->fahr 36.6)
+  (->fahr 0)
+  (->fahr nil)
+  )
+
+
+(require 'unilog.config)
+
+(unilog.config/start-logging!
+ {:console true
+  :level :info
+  :overrides {:org.apache.kafka :debug}})
+
+
+(client/post
+ "https://internal.site.com"
+ {:as :json
+  :content-type :json
+  :form-params {:event "user-created"
+                :user_id 10099}})
+
+
+((resovle 'some-ns/private-func) 1 2)
+;; or
+(#'some-ns/private-func 1 2)
+
+(in-ns 'some-ns)
+(private-func 1 2)
+
+
+(let [name "John"
+      email "test@test.com"]
+  (format "%s <%s>" name email))
+
+
+(print-method )
+
+
+(ns some-ns
+  (:require
+   [clojure.walk :as walk])
+  (:import
+   java.io.File))
+
+
+(ns ...
+  ...
+  (:import
+   java.security.cert.CertificateFactory
+   java.security.cert.X509Certificate
+   java.security.PublicKey))
+
+
+
+(do (clojure.pprint/pprint response) response)
+
+(ns some-ns
+  (:require
+   [company.api.user :as user]))
+
+::user/email
+
+
+(ns some-ns
+  (:require
+   [clojure.spec.alpha :as s]
+   [clojure.java.jdbc.spec :as jdbc]))
+
+(s/def ::db ::jdbc/db-spec)
+
+(s/def ::config
+  (s/keys :req-in [::db]))
+
+clojure/clojure/java/jdbc/spec.clj
+
+Function / any?
+Function / str
+Function / symbol?
+Function / keyword?
