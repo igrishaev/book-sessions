@@ -121,6 +121,8 @@
 >>>  :db/port 5432
 
 
+(require '[clj-http.client :as client])
+
 (defn get-joke [lang]
   (let [request
         {:url "https://v2.jokeapi.dev/joke/Programming"
