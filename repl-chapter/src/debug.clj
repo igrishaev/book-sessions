@@ -25,10 +25,22 @@
   (do-something-witn-ns ns))
 
 
+(defn debug-inner [ns locals]
+  (loop []
+    (let [input (read-line)
+          form (read-string input)]
+      (when-not (= form :repl/exit)
+        (let [result (eval+ ns locals form)]
+          (println result)
+          (recur))))))
+
 (defmacro debug []
-  (let [ns *ns*
-        locals (get-locals)]
-    (debug-inner ns locals)))
+  `(debug-inner *ns* (get-locals)))
+
+
+(let [a 1 b 2]
+  (debug)
+  (+ a b))
 
 
 (intern *ns* 'hello "test")
@@ -45,13 +57,22 @@ hello
 Syntax error compiling at (repl-chapter:localhost:62378(clj)*:1:8441).
 Unable to resolve symbol: hello in this context
 
-(defn eval+ [the-ns locals form]
+(defn eval+ [ns locals form]
   (doseq [[sym value] locals]
-    (intern the-ns sym value))
-  (binding [*ns* the-ns]
-    (eval form))
-  (doseq [[sym value] locals]
-    (ns-unmap the-ns sym)))
+    (intern ns sym value))
+  (let [result
+        (binding [*ns* ns]
+          (eval form))]
+    (doseq [[sym value] locals]
+      (ns-unmap ns sym))
+    result))
+
+
+(eval+ *ns* {'a 1 'b 2} '(+ a b))
+
+a
+Syntax error compiling at (repl-chapter:localhost:62378(clj)*:1:8441).
+Unable to resolve symbol: a in this context
 
 #_
 (let [a 1
