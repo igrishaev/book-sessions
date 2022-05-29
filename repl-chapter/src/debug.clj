@@ -25,22 +25,64 @@
   (do-something-witn-ns ns))
 
 
-(defn debug-inner [ns locals]
+(defn break-inner [ns locals]
   (loop []
     (let [input (read-line)
           form (read-string input)]
-      (when-not (= form :repl/exit)
-        (let [result (eval+ ns locals form)]
+      (when-not (= form '!exit)
+        (let [result
+              (case form
+                !locals locals
+                !help "Help message..."
+                (eval+ ns locals form))]
           (println result)
           (recur))))))
 
-(defmacro debug []
-  `(debug-inner *ns* (get-locals)))
+(defmacro break [form]
+  `(do
+     (break-inner *ns* (get-locals))
+     ~form))
+
+
+(defn break-reader [form]
+  `(break ~form))
+
+(let [a 1 b 2]
+  (break
+   (+ a b)))
 
 
 (let [a 1 b 2]
-  (debug)
+  #break
   (+ a b))
+
+
+(defmacro debug [form]
+  ...)
+
+
+'(let [a 1 b 2]
+   (+ a b))
+
+
+(let [a (break 1)
+      b (break 2)]
+  (break
+   (+ a b)))
+
+
+(let [(break a) (break 1)
+      (break b) (break 2)]
+  (break
+   (+ a b)))
+
+
+'(let [a (break 1)
+       b (break 2)]
+   (break
+    (+ a b)))
+
+
 
 
 (intern *ns* 'hello "test")
@@ -58,6 +100,9 @@ Syntax error compiling at (repl-chapter:localhost:62378(clj)*:1:8441).
 Unable to resolve symbol: hello in this context
 
 (defn eval+ [ns locals form]
+  ...)
+
+(defn eval+ [ns locals form]
   (doseq [[sym value] locals]
     (intern ns sym value))
   (let [result
@@ -68,7 +113,77 @@ Unable to resolve symbol: hello in this context
     result))
 
 
+
+(def ^:dynamic ^:private
+  *locals* nil)
+
+(defn eval+ [ns locals form]
+  (binding [*locals* locals
+            *ns* ns]
+    (eval `(let ~(reduce
+                  (fn [result sym]
+                    (conj result sym `(get *locals* '~sym)))
+                  []
+                  (keys locals))
+             ~form))))
+
+
+[a (get *locals* 'a)
+ b (get *locals* 'b)
+ ...
+ ]
+
+
+(eval+ *ns* '{a 1 b 2} '(+ a b))
+;; 3
+
+;; locals
+{'a 1 'b 2}
+
+;; form
+'(+ a b)
+
+;; result
+(eval '(let [a 1 b 2]
+         (+ a b)))
+
+(def a 1)
+
+
+(eval '(let [a (get ... 'a)
+             b (get ... 'b)]
+         (+ a b)))
+
+
+(def ^:dynamic *foo* nil)
+
+(binding [*foo* 3]
+  (eval '(* *foo* *foo*)))
+
+
+(defn make-eval-form [locals form]
+  (list 'let (vec (mapcat identity locals)) form))
+
+(make-eval-form {'a 1 'b 2} '(+ a b))
+
+(make-eval-form
+ {'file (new java.io.File "test.txt")}
+ '(.getAbsolutePath file))
+
+(let [file #object[java.io.File 0x4e293fac "test.txt"]]
+  (.getAbsolutePath file))
+
+(make-eval-form
+ {'numbers (list 1 2 3)}
+ '(count numbers))
+
+(let [numbers (1 2 3)]
+  (count numbers))
+
 (eval+ *ns* {'a 1 'b 2} '(+ a b))
+;; 3
+
+a
 
 a
 Syntax error compiling at (repl-chapter:localhost:62378(clj)*:1:8441).
@@ -87,3 +202,6 @@ Unable to resolve symbol: a in this context
 (format-user {:username "John"
               :email "john@test.com"})
 ;; "John <john@test.com>"
+
+
+{break my.namespace/break}
