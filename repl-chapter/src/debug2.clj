@@ -49,3 +49,9 @@
       b 2]
   #my/break
   (+ a b))
+
+
+(let [a 1
+      b 2]
+  #my/break
+  (+ a b))
