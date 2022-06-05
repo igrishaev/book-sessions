@@ -1,5 +1,6 @@
 (ns sample
   (:require
+   [clj-http.client :as client]
    [clojure.test :refer [deftest is]]))
 
 
@@ -138,25 +139,116 @@
 
         {:keys [setup delivery]}
         body]
-
     (format "%s %s" setup delivery)))
 
 
-(defn get-joke [lang]
-  (let [...
-        response
-        (client/request request)
-        _
-        (clojure.pprint/pprint response)
+(get-joke "C#")
 
-        {:keys [body]}
-        response
 
-        ...]))
 
+(-> "#break (+ 1 2)"
+    read-string
+    meta)
+
+
+(meta (cider.nrepl.middleware.debug/breakpoint-reader '(+ 1 2)))
+
+#:cider.nrepl.middleware.util.instrument
+{:breakfunction
+ #'cider.nrepl.middleware.debug/breakpoint-with-initial-debug-bindings}
+
+
+(cider.nrepl.middleware.util.instrument/instrument-tagged-code
+ (read-string "#break (+ 1 2)"))
+
+
+(cider.nrepl.middleware.util.instrument/instrument-tagged-code
+ (read-string "#dbg (get-joke \"python\")"))
+
+
+(require
+ '[cider.nrepl.middleware.util.instrument :refer [instrument-tagged-code]])
+
+(instrument-tagged-code
+ (read-string "#dbg (defn add [a b] (+ a b))"))
+
+
+(instrument-tagged-code
+ (read-string "#dbg [a b c]"))
 
 
 {:user
  :injections
  [(require 'clojure.pprint)
   (require 'clojure.inspector)]}
+
+
+cider.nrepl.middleware.debug
+
+
+(#'.../breakpoint-with-initial-debug-bindings
+ (def
+  add
+  (fn*
+   ([a b]
+    (#'.../breakpoint-if-interesting
+     (+
+      (#'.../breakpoint-if-interesting
+       a
+       {:coor [3 1]}
+       a)
+      (#'.../breakpoint-if-interesting
+       b
+       {:coor [3 2]}
+       b))
+     {:coor [3]}
+     (+ a b)))))
+ {:coor []}
+ (defn add [a b] (+ a b)))
+
+
+(instrument-tagged-code
+ (read-string "#dbg [a b c]"))
+
+[(#'.../breakpoint-if-interesting a {:coor [0]} a)
+ (#'.../breakpoint-if-interesting b {:coor [1]} b)
+ (#'.../breakpoint-if-interesting c {:coor [2]} c)]
+
+(instrument-tagged-code
+ (read-string "#dbg [1 \"hello\" :foobar]"))
+
+[1 "hello" :foobar]
+
+
+(instrument-tagged-code
+ (read-string "#dbg #{a b c d e}"))
+
+
+(instrument-tagged-code
+ (read-string "#dbg {1 a 2 b}"))
+
+(instrument-tagged-code
+ (read-string "#dbg {c a 2 b}"))
+
+
+(instrument-tagged-code
+ (read-string "#dbg {a a b b c c d d e e f f g g h h i i}"))
+
+(instrument-tagged-code
+ (read-string "#dbg (loop [x 0] (recur (inc x)))"))
+
+
+(loop [x 0]
+  #break
+  (when (< x 10)
+    (println x)
+    (recur (inc x))))
+
+
+docker run -it --rm -p 9911:9911 -v `pwd`:/project -w /project clojure lein with-profile +docker repl
+
+:profilesy
+{:docker
+ {:repl-options {:port 9911
+                 :host "0.0.0.0"}
+  :plugins [[cider/cider-nrepl "0.28.3"]]}}

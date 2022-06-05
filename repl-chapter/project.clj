@@ -3,8 +3,7 @@
   :license {:name "Eclipse Public License"
             :url "http://www.eclipse.org/legal/epl-v10.html"}
 
-  :plugins [
-            ]
+  :plugins []
 
   :main my-repl
 
@@ -17,6 +16,7 @@
                  ]
 
   :repl-options {;; :port 9911
+                 ;; :host "0.0.0.0"
                  ;; :init-ns my-repl
                  :prompt (fn [the-ns]
                            (format "[%s] >> " the-ns))
@@ -26,7 +26,13 @@
   :target-path "target/%s"
 
   :profiles
-  {:uberjar {:aot :all}
+  {:docker
+   {:repl-options {:port 9911
+                   :host "0.0.0.0"}
+    :plugins [[cider/cider-nrepl "0.28.3"]]}
+
+
+   :uberjar {:aot :all}
    :dev {:dependencies [[nrepl/nrepl "0.9.0"]]}
 
    })

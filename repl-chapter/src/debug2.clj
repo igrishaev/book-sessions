@@ -44,6 +44,8 @@
   `(break ~form))
 
 
+
+
 #_
 (let [a 1
       b 2]
@@ -51,7 +53,34 @@
   (+ a b))
 
 
-(let [a 1
-      b 2]
-  #my/break
-  (+ a b))
+;; (defn example []
+;;   (let [a 1
+;;         b 2]
+;;     #break
+;;     (+ a b)))
+
+
+;; (example)
+
+
+;; {dbg cider.nrepl.middleware.debug/debug-reader
+;;  break cider.nrepl.middleware.debug/breakpoint-reader
+;;  light cider.nrepl.middleware.enlighten/light-reader}
+
+
+;; (def form (read-string "(let [a 1 b 2] #break (+ a b))"))
+
+
+;; (ins/instrument-tagged-code -f)
+
+
+(defn get-joke [lang]
+  (let [request
+        {:url "https://v2.jokeapi.dev/joke/Programming"
+         :method :get
+         :query-params {:contains lang} => "C#" ;; <
+         :as :json}
+
+
+        response
+        (client/request request) => {:url "https:..." :method :get ...} ;; <
