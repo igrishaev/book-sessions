@@ -1,0 +1,3 @@
+{:nrepl {:bind "127.0.0.1"
+         :port 9911
+         :handler cider.nrepl/cider-nrepl-handler}}

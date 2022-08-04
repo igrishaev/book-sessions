@@ -1,9 +1,17 @@
-{
- :aliases
- {:nrepl
+{:aliases
+ {:nrepl/piggieback
   {:extra-deps
    {nrepl/nrepl {:mvn/version "0.8.3"}
-    cider/piggieback {:mvn/version "0.5.3"}}}}
-
+    cider/piggieback {:mvn/version "0.5.3"}
+    cider/cider-nrepl {:mvn/version "0.28.3"}}
+   :main-opts
+   ["-m" "nrepl.cmdline"
+    "--bind" "localhost"
+    "--middleware" "[cider.piggieback/wrap-cljs-repl,cider.nrepl/cider-middleware]"]}}
  :deps
+ {org.clojure/clojurescript {:mvn/version "1.10.758"}}}
+
+
+#_
+{:deps
  {org.clojure/clojurescript {:mvn/version "1.10.758"}}}

@@ -190,22 +190,52 @@
 
 #_
 (defn repl []
-  (with-local-vars [-*e nil -*r nil]
+  (with-local-vars [-e nil -r nil]
     (loop []
       (let [input (read-line)
             expr (read-string input)
             result
             (case expr
-              *e (var-get -*e)
-              *r (var-get -*r)
+              -e (var-get -e)
+              -r (var-get -r)
               (eval
-               `(let [~'*r ~(var-get -*r)
-                      ~'*e ~(var-get -*e)]
+               `(let [~'-r ~(var-get -r)
+                      ~'-e ~(var-get -e)]
                   ~expr)))]
-        (var-set -*r result)
+        (var-set -r result)
         (println result)
         (recur)))))
 
+(defn repl []
+  (with-local-vars [-r nil]
+    (loop []
+      (let [input (read-line)
+            expr (read-string input)
+            result
+            (case expr
+              -r (var-get -r)
+              (eval
+               `(let [~'-r ~(var-get -r)]
+                  ~expr)))]
+        (var-set -r result)
+        (println result)
+        (recur)))))
+
+
+(defn make-stack []
+  (let [-stack (atom nil)]
+    (fn stack
+      ([cmd]
+       (case cmd
+         :count (count @-stack)
+         :empty? (zero? (count @-stack))
+         :pop (let [item (first @-stack)]
+                (swap! -stack rest)
+                item)))
+      ([cmd arg]
+       (case cmd
+         :push
+         (swap! -stack conj arg))))))
 
 (defn make-stack []
   (let [-stack (atom nil)]
@@ -324,6 +354,7 @@
         (recur)))))
 
 
+#_
 (defn repl []
   (binding [*r nil
             *e nil]

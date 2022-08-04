@@ -1,0 +1,14 @@
+version: '3.8'
+services:
+  nrepl:
+    container_name: my_project
+    image: clojure
+    volumes:
+      - .:/project
+      - ~/.lein/profiles.clj:/etc/leiningen/profiles.clj
+    ports:
+      - $NREPL_PORT:$NREPL_PORT
+    environment:
+      NREPL_PORT: $NREPL_PORT
+    working_dir: /project
+    command: ["lein", "with-profile", "+docker", "repl", ":headless"]

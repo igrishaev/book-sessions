@@ -107,3 +107,8 @@
              ;; :dev  {:resource-paths ["env/test/resources"]}
 
              })
+
+
+{:profiles
+ {:dev
+  {:resource-paths ["test"]}}}

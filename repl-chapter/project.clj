@@ -27,9 +27,10 @@
 
   :profiles
   {:docker
-   {:repl-options {:port 9911
+   {:local-repo ".docker/m2"
+    :repl-options {:port ~(some-> "NREPL_PORT" (System/getenv) (Integer/parseInt))
                    :host "0.0.0.0"}
-    :plugins [[cider/cider-nrepl "0.28.3"]]}
+    :plugins []}
 
 
    :uberjar {:aot :all}
