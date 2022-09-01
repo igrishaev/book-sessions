@@ -13,6 +13,7 @@
    [ring.middleware.session :refer [wrap-session]]
    [clj-http.client :as client]
    [bidi.bidi :as bidi]
+   [bidi.verbose :as verbose]
    [clojure.java.jdbc :as jdbc]
    [ring.adapter.jetty :refer [run-jetty]]
    [ring.middleware.cookies :refer [wrap-cookies]]
@@ -23,6 +24,29 @@
   ["/" {""      :page-index
         "hello" :page-hello
         true    :not-found}])
+
+
+(def routes
+  [["/content/order/" :id] {"/view" {:get  :page-view}
+                            "/edit" {:get  :page-form
+                                     :post :page-save}}])
+
+(def routes
+  [["/content/order/" :id] [["/view" [[:get :page-view]]]
+                            ["/edit" [[:get  :page-form]
+                                      [:post :page-save]]]]])
+
+
+(require '[bidi.verbose :refer [branch param leaf]])
+
+
+(def routes
+  (branch "/content/order/" (param :id)
+    (branch "/view"
+      (leaf :get :page-view))
+    (branch "/edit"
+      (leaf :get :page-form)
+      (leaf :post :page-save))))
 
 
 (defn wrap-handler [handler]
