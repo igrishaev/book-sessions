@@ -29,6 +29,19 @@
            com.github.vertical_blank.sqlformatter.SqlFormatter))
 
 
+(defn fetch-related
+  [db-spec table fk-name fk-vals]
+  (jdbc/query
+   db-spec
+   (sql/format
+   {:select [:*]
+    :from [table]
+    :where [[:in fk-name fk-vals]]})))
+
+
+
+
+
 (def db {:dbtype "postgresql"
          :dbname "test"
          :host "127.0.0.1"
@@ -1504,6 +1517,21 @@ join photos p on p.user_id = u.id
             (for [ids-chunk ids-chunks]
               (future
                 (fetch-related ... ids-chunk))))]
+  (reduce
+   (fn [result fut]
+     (into result @fut))
+   []
+   futs))
+
+
+(let [ids-chunks
+      (by-chunks ids-all 100)
+
+      futs
+      (pmap (fn [ids-chunk]
+              (fetch-related ... ids-chunk))
+            ids-chunks)]
+
   (reduce
    (fn [result fut]
      (into result @fut))
