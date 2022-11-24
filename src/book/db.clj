@@ -48,6 +48,14 @@
          :user "book"
          :password "book"})
 
+#_
+(def db {:dbtype "postgresql"
+         :dbname "ivan"
+         :host "127.0.0.1"
+         :port 15432
+         :user "ivan"
+         :password "secret"})
+
 ;; [org.clojure/java.jdbc "0.7.8"]
 ;; [org.postgresql/postgresql "42.1.3"]
 
