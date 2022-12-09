@@ -26,7 +26,7 @@
   {:store :database
    :migration-dir "migrations"
    :db {:dbtype "postgresql"
-        :dbname "migration_test"
+        :dbname "book"
         :host "127.0.0.1"
         :user ~(System/getenv "DB_USER")
         :password ~(System/getenv "DB_PASSWORD")}}

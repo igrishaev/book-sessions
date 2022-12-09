@@ -2,7 +2,7 @@ version: '2'
 services:
 
   postgres:
-    image: postgres
+    image: postgres:11
     container_name: book_postgres
     volumes:
       - ./initdb.d:/docker-entrypoint-initdb.d
@@ -12,6 +12,7 @@ services:
     command: postgres -E
     environment:
       # PGDATA: /var/lib/postgresql/data/pgdata
+      POSTGRES_HOST_AUTH_METHOD: md5
       POSTGRES_DB: book
       POSTGRES_USER: book
       POSTGRES_PASSWORD: book
